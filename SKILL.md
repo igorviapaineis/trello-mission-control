@@ -200,6 +200,7 @@ Agente A termina → sessions_send("faz isso") → espera resposta → timeout �
 ### Outras regras
 - **Sia cria**, agentes processam em sequence
 - **Always comment before moving** — creates audit trail
+- **NUNCA pular etapas do pipeline** — depois de code review (Vision), SEMPRE move pra Friday (deploy) → Ultron (QA) → Done
 - **Checklist items** track each agent's step in pipeline
 - **Pipeline projects** start in first pipeline stage with label "revisao"
 - **Bugs found** → "bloqueado" label + `prev` to send back
