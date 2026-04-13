@@ -191,6 +191,12 @@ Agente B verifica no heartbeat → pega o card → faz o trabalho → comenta �
 Agente A termina → sessions_send("faz isso") → espera resposta → timeout → retry
 ```
 
+### Múltiplos cards na mesma lista
+- **Ordem de prioridade:** label Urgente → mais antigo primeiro
+- Processar **um por vez** — termina, comenta, move pra Done (ou próximo pipeline)
+- Depois pega o próximo card
+- Nunca mover cards sem concluir a tarefa
+
 ### Outras regras
 - **Sia cria**, agentes processam em sequence
 - **Always comment before moving** — creates audit trail
