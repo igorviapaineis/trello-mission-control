@@ -1,0 +1,32 @@
+{
+  "board_id": "69d2674f18f81ae4542390f2",
+  "lists": {
+    "inbox": "69d2674f18f81ae45423911d",
+    "em-design": "69d2674f18f81ae45423911e",
+    "friday": "69d267624b77d91cc1a01551",
+    "jarvis": "69d26763a4cf6a38675c1e3e",
+    "vision": "69d26763e3f1f013699d3226",
+    "sia": "69d26763d7d789bc4b3a0416",
+    "done": "69d2674f18f81ae45423911f"
+  },
+  "labels": {
+    "sia": "69d267beff9b8a0217b5709a",
+    "friday": "69d267bf60bc6c8978367204",
+    "jarvis": "69d267bf88bfd7ef7fecf06c",
+    "vision": "69d267bfd4db62c5943049f6",
+    "urgente": "69d267726d6968def30d04c2",
+    "revisao": "69d267723178579126448c70",
+    "aprovado": "69d2677334a1ae739b497eda",
+    "bloqueado": "69d26773aa749c602d808b7d",
+    "igor": "69d267bf82f05a4bafaee46a"
+  },
+  "pipeline": [
+    "inbox",
+    "em-design",
+    "friday",
+    "jarvis",
+    "vision",
+    "sia",
+    "done"
+  ]
+}
