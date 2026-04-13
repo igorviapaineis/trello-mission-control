@@ -171,8 +171,28 @@ python3 $SCRIPT board                # Quick counts per list
 
 ## Rules
 
-- **Sia creates**, agents process in sequence
-- **No sessions_send for task delegation** — Trello is the channel
+### 🔒 Task Delegation — EXCLUSIVAMENTE via Trello
+
+- **TODAS as tarefas entre agentes passam pelo Trello Mission Control**
+- **NUNCA usar sessions_send, sessions_spawn ou qualquer mensagem interna para delegar tarefas**
+- Comunicação interna entre agentes é **apenas para chat/coordenação** (tirar dúvidas, alinhar, informar algo)
+- Passagem de bastão = mover card no Trello + comentar o que foi feito
+- Se um agente precisa que outro trabalhe em algo → cria/move card no Trello
+- **Sem await, sem timeout, sem sessões cruzadas para tarefas**
+
+### Fluxo correto
+```
+Agente A termina tarefa → comenta no card → move card pra lista do Agente B → acabou
+Agente B verifica no heartbeat → pega o card → faz o trabalho → comenta → move pra próximo
+```
+
+### Fluxo ERRADO ❌
+```
+Agente A termina → sessions_send("faz isso") → espera resposta → timeout → retry
+```
+
+### Outras regras
+- **Sia cria**, agentes processam em sequence
 - **Always comment before moving** — creates audit trail
 - **Checklist items** track each agent's step in pipeline
 - **Pipeline projects** start in first pipeline stage with label "revisao"
