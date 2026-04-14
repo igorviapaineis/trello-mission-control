@@ -43,7 +43,7 @@ Or see `references/example-config.json` for a full example.
     "vision": "LABEL_ID",
     "urgente": "LABEL_ID"
   },
-  "pipeline": ["inbox", "jarvis", "vision", "done"]
+  "pipeline": ["inbox", "em-andamento", "jarvis", "vision", "friday", "ultron", "done"]
 }
 ```
 
