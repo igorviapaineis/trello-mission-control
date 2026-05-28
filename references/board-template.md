@@ -1,6 +1,53 @@
 # Board template — bootstrap a fresh board from scratch
 
-Trello Free does not let you publish a board template that other users can clone. The setup below takes ~5 minutes to do manually and is idempotent for the parts that touch the API.
+Trello Free does not let you publish a board template that other users can clone. There are two paths:
+
+- **§0 Auto-bootstrap (recommended)** — one Python script creates everything in ~10 seconds.
+- **§1–§6 Manual** — UI-driven walkthrough; useful if you want full visual control or are extending an existing board.
+
+## 0. Auto-bootstrap (recommended)
+
+```bash
+export TRELLO_API_KEY='...'
+export TRELLO_TOKEN='...'   # from https://trello.com/power-ups/admin (read+write by default)
+
+python3 scripts/bootstrap_board.py \
+  --name "Mission Control" \
+  --agents jarvis,vision,friday,sia \
+  --with-labels
+```
+
+This calls Trello's REST API to:
+
+1. `POST /1/boards/` — create the active board (`Mission Control`).
+2. `POST /1/lists/` × N — create `inbox`, one list per agent, `done`, `_templates`.
+3. `POST /1/boards/` — create the archive board (`Mission Control — Archive`).
+4. Write every ID into `trello_config.json` (merges with any existing fields — does not clobber).
+5. `--with-labels`: invoke `setup_labels.py` to create the 6 global + per-agent `claim-*` labels.
+
+When it finishes you see:
+
+```
+BOARD_READY:active=https://trello.com/b/<id>|archive=https://trello.com/b/<id>
+```
+
+Open the URLs to confirm. Skip directly to step 6 of the SKILL.md Quickstart (workspace templates).
+
+Flags:
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `--name` | `Mission Control` | Active board name |
+| `--archive-name` | `<name> — Archive` | Archive board name |
+| `--agents` | `executor` | Comma-separated agent slugs → one list each |
+| `--workspace-id` | personal | Trello workspace/org ID (find at trello.com/w/<workspace>) |
+| `--config` | `./trello_config.json` | Path to write the merged config |
+| `--with-labels` | off | Run `setup_labels.py` after bootstrap |
+| `--dry` | off | Print the plan; touch nothing |
+
+Re-running is safe for the config merge but Trello has no native idempotency for board create — you will get a *second* board with the same name. Delete the old one in the UI before re-running.
+
+The remaining sections (§1–§6) describe the same setup by hand if you prefer the UI route.
 
 ## 1. Create the active board
 

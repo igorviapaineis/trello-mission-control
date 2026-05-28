@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] — 2026-05-28
+
+### Added
+- `scripts/bootstrap_board.py` — one-shot Trello bootstrap. Creates the active board, the per-agent lists (`inbox`, `<agent>` × N, `done`, `_templates`), and the archive board via Trello's REST API. Writes every ID into `trello_config.json`, merging with any existing fields. `--with-labels` chains `setup_labels.py` to create the canonical labels in the same run. Flags: `--name`, `--archive-name`, `--agents`, `--workspace-id`, `--config`, `--with-labels`, `--dry`.
+- `tests/test_bootstrap_board.py` — pure-helper coverage for `parse_agents`, `build_list_names`, `merge_config`, `build_agents_block`, and `slugify`.
+- `tests/smoke.sh` adds a dry-run entry for `bootstrap_board.py`.
+
+### Changed
+- `SKILL.md` Quickstart Step 0 swaps the manual prep checklist for a single `bootstrap_board.py` invocation. Manual fallback still documented in `references/board-template.md`.
+- `references/board-template.md` opens with a new **§0 Auto-bootstrap (recommended)** section explaining the script + flags table. The hand-driven §1–§6 stay as the manual route.
+- `docs/quickstart.md` mirrors the SKILL.md Step 0 change.
+- README, `docs/quickstart.md`, `references/install.md` bump `@v3.0.6` → `@v3.1.0`.
+- `package.json` bumped to 3.1.0.
+
+### Notes
+- Token from <https://trello.com/power-ups/admin> grants `read,write,account` by default — sufficient to `POST /1/boards/` and `POST /1/lists/`. No additional auth flow needed.
+- Re-running `bootstrap_board.py` is safe for the config merge but Trello has no native idempotency for board create — a second run yields a second board with the same name. Delete the old board in the UI first if you need to retry.
+- This is a minor release because `bootstrap_board.py` is a new capability, not a behavior change to any existing script. Existing setups keep working unchanged.
+
 ## [3.0.6] — 2026-05-28
 
 ### Changed

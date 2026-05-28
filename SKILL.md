@@ -40,30 +40,25 @@ If any of the above is missing, `scripts/doctor.py` (step 5 of the Quickstart) w
 ## Quickstart
 
 ```bash
-# 0. First time? Prepare the Trello side (~5 min). See references/board-template.md for the full walk-through.
-#    Checklist:
-#      [ ] API key + token generated at https://trello.com/power-ups/admin
-#      [ ] Active board created with lists: inbox, executor, done, _templates
-#      [ ] Archive board created (empty)
-#      [ ] You have the board IDs handy (append `.json` to the board URL to find them)
-#    If any item is missing, finish board-template.md first — the script-driven steps below assume the boards exist.
+# 0. First time? Auto-bootstrap the Trello side (~10 sec, requires creds from step 2 first):
+#      python3 scripts/bootstrap_board.py --agents jarvis,vision,friday,sia --with-labels
+#    This creates the active board + lists + archive board + canonical labels and writes trello_config.json.
+#    Prefer to set everything up manually? Follow references/board-template.md §1 onwards.
 
 # 1. Install the skill (git source until published to ClawHub)
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.5
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.0
 
 # 2. Export Trello credentials (every script reads them from the environment)
 export TRELLO_API_KEY='...'
 export TRELLO_TOKEN='...'
 # persist in ~/.zshrc or ~/.bashrc so they survive new shells
 
-# 3. Generate the config template, then fill in the IDs
+# 3. Generate the config template (or skip — `bootstrap_board.py` in step 0 already wrote it)
 cd ~/.openclaw/skills/trello-mission-control
-python3 scripts/trello_task.py init
-$EDITOR trello_config.json
-#   board_id          → from the URL of your active board (https://trello.com/b/<id>/...)
-#   archive_board_id  → from the URL of the archive board
-#   templates_list_id → after creating the _templates list, get its ID via `board`
-#   lists.*           → `python3 scripts/trello_task.py board` prints list IDs
+[ -f trello_config.json ] || python3 scripts/trello_task.py init
+# If you did NOT run bootstrap_board, edit trello_config.json manually:
+#   board_id, archive_board_id, templates_list_id, lists.* — see references/board-template.md
+# Bootstrap users can skip the edit; everything is already populated.
 
 # 4. Create the canonical labels on the active board (idempotent)
 python3 scripts/setup_labels.py
