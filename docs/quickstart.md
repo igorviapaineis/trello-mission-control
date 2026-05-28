@@ -3,8 +3,15 @@
 Get a working 2-agent setup in 5 minutes.
 
 ```bash
+# 0. First time? Prepare the Trello side (~5 min). See references/board-template.md for the full walk-through.
+#    Checklist:
+#      [ ] API key + token generated at https://trello.com/power-ups/admin
+#      [ ] Active board with lists: inbox, executor, done, _templates
+#      [ ] Archive board (empty)
+#      [ ] Board IDs handy (append `.json` to the board URL)
+
 # 1. Install the skill (git source; will move to `clawhub:igorviapaineis/trello-mission-control` once published)
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.4
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.5
 
 # 2. Set Trello credentials
 export TRELLO_API_KEY='...'      # https://trello.com/power-ups/admin

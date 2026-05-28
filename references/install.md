@@ -5,7 +5,7 @@
 From a tagged GitHub release (recommended for end users):
 
 ```bash
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.4
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.5
 openclaw skills list                  # should include trello-mission-control
 ```
 
@@ -31,7 +31,7 @@ Best practice: one token per agent, never share. The per-token rate limit is `10
 
 ## 3. Create the board
 
-**The active board must exist before you run any other step** — `setup_labels.py` writes to it, and `doctor.py` checks against it. Follow `references/board-template.md`. Briefly:
+**The active board must exist before you run any other step** — `setup_labels.py` writes to it, and `doctor.py` checks against it. The complete board prep walkthrough is in [`board-template.md`](board-template.md) — it covers list creation, finding board/list IDs via the `.json` URL trick, archive board setup, and seeding template cards. Five-minute summary:
 
 - Active board with lists `inbox`, `<executor list>`, `done`, `_templates`.
 - Archive board (empty — `archive_old.py` populates).

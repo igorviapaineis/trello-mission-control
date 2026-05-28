@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.5] — 2026-05-28
+
+### Changed
+- `SKILL.md` description rewritten as a pushy trigger phrase that names concrete contexts and lists example user prompts (per `~/.claude/skills/openclaw-skill-creator/references/triggering-tips.md`). The previous 113-character description under-triggered on natural prompts like "cria board pra meus agentes" or "orquestra via trello". Net: description grew from 113 to 521 characters, body still ≤ 500 lines.
+- `SKILL.md` frontmatter adds `metadata.openclaw.homepage` and `metadata.openclaw.license`. Inert at runtime; useful for discoverability and license metadata.
+- `SKILL.md` Prerequisites now spells out how to generate the Trello API key + token step by step (instead of just linking the dev page) and links `references/board-template.md` explicitly as the place to start when prepping the Trello side from scratch.
+- `SKILL.md` Quickstart now opens with a Step 0 "prep checklist" pointing new users at `references/board-template.md` before any CLI runs. Steps 1–9 unchanged.
+- `SKILL.md` "Card hygiene on completion" section trimmed to a one-line pointer at `references/card-spec.md`. The card-spec was already canonical; the duplicate content in SKILL.md was drift-prone. Body 335 → 324 lines.
+- `docs/quickstart.md` opens with the same Step 0 prep checklist.
+- `references/install.md` Section 3 now highlights `references/board-template.md` as the primary walkthrough instead of a brief mention.
+- README, docs/quickstart.md, references/install.md install version `@v3.0.4` → `@v3.0.5`.
+- `package.json` bumped to 3.0.5.
+
+### Notes
+- No script changes. No test changes. No behavior change.
+- A self-review pass on the skill metadata using the `openclaw-skill-creator` skill (the one installed in Claude Code).
+
 ## [3.0.4] — 2026-05-28
 
 ### Added
