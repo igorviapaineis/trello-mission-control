@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] — 2026-05-28
+
+### Added
+- `scripts/bootstrap_board.py` gains `--auto-detect`: reads `~/.openclaw/openclaw.json`, extracts `agents.list[].id`, skips `orchestrator`, and uses the remainder as the per-agent list set. `--openclaw-config` overrides the path. Falls back to the default `executor` list (with a WARN) if the file is missing or has no agents. The JSON5 parser tolerates `//` line comments, `/* … */` block comments, and trailing commas — the same dialect OpenClaw itself accepts.
+- `tests/test_bootstrap_board.py` grows seven cases for `auto_detect_agents` (missing file, JSON5 input, `skip_ids` override, invalid JSON, empty list, case-insensitive dedup, plain JSON).
+- `tests/smoke.sh` adds a dry-run entry that exercises `--auto-detect` against a deliberately missing path.
+
+### Changed
+- `SKILL.md` Step 0 now describes three explicit paths (`--auto-detect`, `--agents <ask-user-first>`, default `executor`) instead of a hardcoded `jarvis,vision,friday,sia` example. The phrasing makes it clear the installing agent should interview the user before passing `--agents`.
+- `docs/quickstart.md` and `references/board-template.md` §0 mirror the three-path guidance. The flag table in board-template adds `--auto-detect` and `--openclaw-config`.
+- README, `docs/quickstart.md`, `references/install.md`, `SKILL.md` bump `@v3.1.0` → `@v3.1.1`.
+- `package.json` bumped to 3.1.1.
+
+### Notes
+- Patch, not minor — `--auto-detect` is an alternative input mode for the existing flag, not a new capability.
+- Triggered by Igor flagging that a fresh installer agent might literally copy the previous `--agents jarvis,vision,friday,sia` example instead of asking the user.
+
 ## [3.1.0] — 2026-05-28
 
 ### Added

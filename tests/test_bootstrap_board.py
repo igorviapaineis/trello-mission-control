@@ -104,6 +104,94 @@ class TestBuildAgentsBlock(unittest.TestCase):
         self.assertEqual(set(block), {"jarvis"})
 
 
+class TestAutoDetectAgents(unittest.TestCase):
+    def _write(self, tmp, text):
+        path = tmp / "openclaw.json"
+        path.write_text(text)
+        return str(path)
+
+    def test_missing_file_returns_empty(self):
+        self.assertEqual(bb.auto_detect_agents("/nonexistent/openclaw.json"), [])
+
+    def test_extracts_executor_agents(self):
+        from pathlib import Path
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            path = self._write(Path(td), '''{
+                "agents": {
+                    "list": [
+                        { "id": "orchestrator", "skills": ["x"] },
+                        { "id": "jarvis", "skills": ["x"] },
+                        { "id": "vision", "skills": ["x"] }
+                    ]
+                }
+            }''')
+            self.assertEqual(bb.auto_detect_agents(path), ["jarvis", "vision"])
+
+    def test_handles_json5_comments_and_trailing_commas(self):
+        from pathlib import Path
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            path = self._write(Path(td), '''
+            // top comment
+            {
+                "agents": {
+                    "list": [
+                        { "id": "orchestrator" }, // talks to user
+                        { "id": "friday" },
+                        /* block */
+                        { "id": "sia" },
+                    ],
+                },
+            }
+            ''')
+            self.assertEqual(bb.auto_detect_agents(path), ["friday", "sia"])
+
+    def test_skip_ids_override(self):
+        from pathlib import Path
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            path = self._write(Path(td), '''{
+                "agents": {"list": [
+                    {"id": "orchestrator"},
+                    {"id": "watcher"},
+                    {"id": "friday"}
+                ]}
+            }''')
+            self.assertEqual(
+                bb.auto_detect_agents(path, skip_ids=("orchestrator", "watcher")),
+                ["friday"],
+            )
+
+    def test_invalid_json_returns_empty(self):
+        from pathlib import Path
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            path = self._write(Path(td), "this is not json at all")
+            self.assertEqual(bb.auto_detect_agents(path), [])
+
+    def test_empty_agents_returns_empty(self):
+        from pathlib import Path
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            path = self._write(Path(td), '{"agents": {"list": []}}')
+            self.assertEqual(bb.auto_detect_agents(path), [])
+
+    def test_dedupes(self):
+        from pathlib import Path
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            path = self._write(Path(td), '''{
+                "agents": {"list": [
+                    {"id": "JARVIS"},
+                    {"id": "jarvis"},
+                    {"id": "vision"}
+                ]}
+            }''')
+            # Case is lowered; duplicates collapse.
+            self.assertEqual(bb.auto_detect_agents(path), ["jarvis", "vision"])
+
+
 class TestSlugify(unittest.TestCase):
     def test_basic(self):
         self.assertEqual(bb.slugify("Mission Control"), "mission-control")

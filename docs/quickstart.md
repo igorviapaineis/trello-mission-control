@@ -3,13 +3,16 @@
 Get a working 2-agent setup in 5 minutes.
 
 ```bash
-# 0. First time? Auto-bootstrap the Trello side (~10 sec, requires creds from step 2 first):
-#      python3 scripts/bootstrap_board.py --agents jarvis,vision,friday,sia --with-labels
+# 0. First time? Auto-bootstrap the Trello side (~10 sec, requires creds from step 2 first).
+#    Choose one of:
+#      python3 scripts/bootstrap_board.py --auto-detect --with-labels         # read agents from ~/.openclaw/openclaw.json
+#      python3 scripts/bootstrap_board.py --agents <list> --with-labels       # explicit (interview the user first)
+#      python3 scripts/bootstrap_board.py --with-labels                       # single executor (default)
 #    Creates the active board + lists + archive board + canonical labels and writes trello_config.json.
 #    Prefer manual setup? See references/board-template.md §1 onwards.
 
 # 1. Install the skill (git source; will move to `clawhub:igorviapaineis/trello-mission-control` once published)
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.0
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.1
 
 # 2. Set Trello credentials
 export TRELLO_API_KEY='...'      # https://trello.com/power-ups/admin

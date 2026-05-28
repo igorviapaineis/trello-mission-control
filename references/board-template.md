@@ -11,10 +11,16 @@ Trello Free does not let you publish a board template that other users can clone
 export TRELLO_API_KEY='...'
 export TRELLO_TOKEN='...'   # from https://trello.com/power-ups/admin (read+write by default)
 
-python3 scripts/bootstrap_board.py \
-  --name "Mission Control" \
-  --agents jarvis,vision,friday,sia \
-  --with-labels
+# Pick ONE of the three ways to name the per-agent lists:
+
+# a) Auto-detect — reads ~/.openclaw/openclaw.json agents.list[], skips `orchestrator`.
+python3 scripts/bootstrap_board.py --auto-detect --with-labels
+
+# b) Explicit list (the installing agent should ASK the user first; do not hardcode).
+python3 scripts/bootstrap_board.py --agents jarvis,vision,friday,sia --with-labels
+
+# c) Default single `executor` list (minimum viable).
+python3 scripts/bootstrap_board.py --with-labels
 ```
 
 This calls Trello's REST API to:
@@ -39,7 +45,9 @@ Flags:
 |---|---|---|
 | `--name` | `Mission Control` | Active board name |
 | `--archive-name` | `<name> — Archive` | Archive board name |
-| `--agents` | `executor` | Comma-separated agent slugs → one list each |
+| `--agents` | `executor` | Comma-separated agent slugs → one list each. Takes precedence over `--auto-detect`. |
+| `--auto-detect` | off | Read `~/.openclaw/openclaw.json` `agents.list[]` and use every id except `orchestrator`. Falls back to `executor` if the file is missing or has no agents. |
+| `--openclaw-config` | `~/.openclaw/openclaw.json` | Override path for `--auto-detect` (useful in tests). |
 | `--workspace-id` | personal | Trello workspace/org ID (find at trello.com/w/<workspace>) |
 | `--config` | `./trello_config.json` | Path to write the merged config |
 | `--with-labels` | off | Run `setup_labels.py` after bootstrap |

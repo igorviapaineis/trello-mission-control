@@ -81,6 +81,7 @@ check "ensure_skills" python3 scripts/ensure_skills.py CARDID --dry
 check "cron_stale_claims" python3 scripts/cron_stale_claims.py --dry
 check "doctor" python3 scripts/doctor.py --dry
 check "bootstrap_board" python3 scripts/bootstrap_board.py --dry --agents jarvis,vision
+check "bootstrap_board_autodetect" python3 scripts/bootstrap_board.py --dry --auto-detect --openclaw-config /tmp/nonexistent.json
 
 echo ""
 echo "smoke: $PASS pass / $FAIL fail"

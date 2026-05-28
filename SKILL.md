@@ -40,13 +40,27 @@ If any of the above is missing, `scripts/doctor.py` (step 5 of the Quickstart) w
 ## Quickstart
 
 ```bash
-# 0. First time? Auto-bootstrap the Trello side (~10 sec, requires creds from step 2 first):
-#      python3 scripts/bootstrap_board.py --agents jarvis,vision,friday,sia --with-labels
-#    This creates the active board + lists + archive board + canonical labels and writes trello_config.json.
+# 0. First time? Auto-bootstrap the Trello side (~10 sec, requires creds from step 2 first).
+#    Pick ONE of the three ways to tell the script which agents you want:
+#
+#    a) Auto-detect from your existing ~/.openclaw/openclaw.json agents.list[]
+#       (recommended once you already have OpenClaw configured — uses every agent
+#       except `orchestrator`):
+#         python3 scripts/bootstrap_board.py --auto-detect --with-labels
+#
+#    b) Ask the user explicitly which agents they want, then pass them in
+#       (the agent installing this skill should INTERVIEW the user — do not hardcode):
+#         python3 scripts/bootstrap_board.py --agents <ask-user-first> --with-labels
+#       Example after interview: --agents jarvis,vision,friday,sia
+#
+#    c) Single executor (minimum viable, default):
+#         python3 scripts/bootstrap_board.py --with-labels
+#
+#    All three create the active board + lists + archive board + canonical labels and write trello_config.json.
 #    Prefer to set everything up manually? Follow references/board-template.md §1 onwards.
 
 # 1. Install the skill (git source until published to ClawHub)
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.0
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.1
 
 # 2. Export Trello credentials (every script reads them from the environment)
 export TRELLO_API_KEY='...'

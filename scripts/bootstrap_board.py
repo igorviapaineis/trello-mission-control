@@ -155,15 +155,59 @@ def slugify(text):
     return re.sub(r"[^a-z0-9-]+", "-", text.lower()).strip("-")
 
 
+def auto_detect_agents(openclaw_config_path=None, skip_ids=("orchestrator",)):
+    """Read ~/.openclaw/openclaw.json and return executor agent slugs.
+
+    Strips the orchestrator (which talks to the user, no list of its own) and
+    any other ids in `skip_ids`. Returns [] if the file is missing or the agents
+    list is empty — caller falls back to its own default.
+
+    Accepts JSON5 (line comments, block comments, trailing commas) the same way
+    OpenClaw does. Parser is intentionally permissive: strip C/JS comments
+    + trailing commas, then json.loads.
+    """
+    path = openclaw_config_path or os.path.expanduser("~/.openclaw/openclaw.json")
+    if not os.path.isfile(path):
+        return []
+    try:
+        with open(path) as f:
+            text = f.read()
+    except OSError:
+        return []
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    text = re.sub(r"(^|[^:])//[^\n]*", lambda m: m.group(1), text)
+    text = re.sub(r",(\s*[}\]])", r"\1", text)
+    try:
+        cfg = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        return []
+    agents = (cfg.get("agents") or {}).get("list") or []
+    out = []
+    skip = set(skip_ids)
+    for a in agents:
+        if not isinstance(a, dict):
+            continue
+        aid = a.get("id")
+        if not isinstance(aid, str):
+            continue
+        if aid in skip:
+            continue
+        if aid not in out:
+            out.append(aid.lower())
+    return out
+
+
 # --- Main ---
 
 def parse_args(argv):
     flags = {
         "name": "Mission Control",
         "archive_name": None,
-        "agents": "executor",
+        "agents": None,
+        "auto_detect": False,
         "workspace_id": None,
         "config": None,
+        "openclaw_config": None,
         "with_labels": False,
         "dry": False,
     }
@@ -176,6 +220,10 @@ def parse_args(argv):
             flags["archive_name"] = argv[i + 1]; i += 1
         elif a == "--agents" and i + 1 < len(argv):
             flags["agents"] = argv[i + 1]; i += 1
+        elif a == "--auto-detect":
+            flags["auto_detect"] = True
+        elif a == "--openclaw-config" and i + 1 < len(argv):
+            flags["openclaw_config"] = argv[i + 1]; i += 1
         elif a == "--workspace-id" and i + 1 < len(argv):
             flags["workspace_id"] = argv[i + 1]; i += 1
         elif a == "--config" and i + 1 < len(argv):
@@ -195,14 +243,32 @@ def parse_args(argv):
     return flags
 
 
+def resolve_agent_list(flags):
+    """Apply --auto-detect / --agents / default in that order of precedence.
+
+    Returns (agents_list, source_label) for the plan printout.
+    """
+    if flags["agents"]:
+        try:
+            return parse_agents(flags["agents"]), f"--agents {flags['agents']}"
+        except ValueError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            sys.exit(EXIT_GENERIC)
+    if flags["auto_detect"]:
+        detected = auto_detect_agents(flags["openclaw_config"])
+        if detected:
+            return detected, f"auto-detected from {flags['openclaw_config'] or '~/.openclaw/openclaw.json'}"
+        print(
+            "WARN: --auto-detect found no agents in OpenClaw config; falling back to ['executor']",
+            file=sys.stderr,
+        )
+    return ["executor"], "default"
+
+
 def main():
     flags = parse_args(sys.argv[1:])
 
-    try:
-        agents = parse_agents(flags["agents"])
-    except ValueError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        sys.exit(EXIT_GENERIC)
+    agents, agents_source = resolve_agent_list(flags)
 
     list_names = build_list_names(agents)
     config_path = find_config_path(flags["config"])
@@ -211,7 +277,7 @@ def main():
     print(f"  active board:  {flags['name']!r}")
     print(f"  lists:         {', '.join(list_names)}")
     print(f"  archive board: {flags['archive_name']!r}")
-    print(f"  agents:        {', '.join(agents)}")
+    print(f"  agents:        {', '.join(agents)}  ({agents_source})")
     print(f"  config:        {config_path}")
     print(f"  workspace:     {flags['workspace_id'] or '<personal>'}")
 
