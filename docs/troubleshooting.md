@@ -1,5 +1,27 @@
 # Troubleshooting
 
+## Install
+
+### `openclaw plugins install clawhub:igorviapaineis/trello-mission-control` fails
+Symptom: the install errors with `package not found in registry`, `unknown source`, or similar.
+
+Cause: the plugin has not yet been published to the [ClawHub](https://docs.openclaw.ai/clawhub) registry. The `clawhub:` prefix only resolves names that the registry knows about.
+
+Fix: install from the GitHub release tag instead:
+
+```bash
+openclaw plugins install git:github.com/igorviapaineis/trello-mission-control@v3.0.2
+openclaw gateway restart
+```
+
+Pick the tag you want from https://github.com/igorviapaineis/trello-mission-control/releases.
+
+### `openclaw plugins install git:...` fails with permission denied
+Cause: SSH-style URL into a private repo or missing git credentials. The plugin's repo is public, so this should not happen. Verify the URL form is `git:github.com/<owner>/<repo>@<ref>` (not `git@github.com:...`) and that `git ls-remote https://github.com/igorviapaineis/trello-mission-control` works for you.
+
+### Plugin installs but `openclaw plugins list` shows it disabled
+Run `openclaw plugins enable trello-mission-control` then `openclaw gateway restart`.
+
 ## Exit codes
 
 The CLI scripts use a defined set of exit codes. Every non-zero exit is one of these.

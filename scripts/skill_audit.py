@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Static audit of a downloaded OpenClaw skill before installing it.
+"""Static audit of an OpenClaw skill folder before installing it.
 
-Run after `clawhub download <skill> --no-install`. Exits 8 on failure with a
-human-readable explanation. Refuses skills that:
+Run after `git clone` of a clawhub-resolved repository (or against any local
+skill folder you want to validate). Exits 8 on failure with a human-readable
+explanation. Refuses skills that:
   - have no YAML frontmatter or no name/description
   - exceed size limits (SKILL.md > 1000 lines, scripts total > 2 MB)
   - contain dangerous shell patterns (curl|sh, sudo, chmod 777, rm -rf /, etc.)

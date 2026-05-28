@@ -112,8 +112,8 @@ Helper: `update_card_complete.py <card_id>` bundles this.
 ### Skill discovery (read `required_skills` from card meta)
 1. `meta-get <card_id> required_skills` returns a JSON list.
 2. `openclaw skills list` shows installed.
-3. For each missing: `clawhub search <name>` → `clawhub download <name> --no-install` → `python3 {baseDir}/scripts/skill_audit.py <folder>`.
-4. Audit pass → `openclaw skills install <folder>` + `/new`.
+3. For each missing: `clawhub search <name>` → `clawhub inspect <slug>` (resolves the slug to repository metadata, including the git URL) → `git clone --depth 1 <repo_url> /tmp/<slug>` → `python3 {baseDir}/scripts/skill_audit.py /tmp/<slug>`.
+4. Audit pass → `openclaw skills install /tmp/<slug>` + `/new`.
 5. Audit fail → comment with `--tag blocked` + add label `bloqueado` + exit.
 
 ### Wake on urgent

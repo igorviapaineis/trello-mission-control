@@ -2,13 +2,18 @@
 """Read required_skills from a card's meta block and install any missing.
 
 Flow per missing skill:
-  1. clawhub search <name>            -> first match's id
-  2. clawhub download <id> --no-install -> local folder
-  3. python3 skill_audit.py <folder>  -> exit 0 = pass
-  4. openclaw skills install <folder>
-  5. Continue to next; final return code reports total state.
+  1. clawhub search <name>           -> first match's slug
+  2. clawhub inspect <slug>          -> metadata; extract repository URL
+  3. git clone --depth 1 <repo> tmp  -> local folder for inspection
+  4. python3 skill_audit.py <folder> -> exit 0 = pass, exit 8 = fail
+  5. openclaw skills install <folder> [--global]
+  6. Continue to next; final return code reports total state.
 
-If any audit fails, the script:
+The flow uses `clawhub inspect` + `git clone` instead of a (non-existent)
+`clawhub download --no-install`. This lets the audit run on the on-disk skill
+folder before the OpenClaw runtime ever loads it.
+
+If any audit or step fails, the script:
   - comments on the card with --tag blocked
   - adds label `bloqueado`
   - exits 8
@@ -37,11 +42,12 @@ from trello_task import (
 
 
 def run(cmd, dry):
+    """Run a subprocess and return (returncode, stdout, stderr)."""
     if dry:
         print(f"DRY: {' '.join(cmd)}")
         return 0, "", ""
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
     except FileNotFoundError:
         return 127, "", f"{cmd[0]} not on PATH"
     return r.returncode, r.stdout, r.stderr
@@ -64,6 +70,7 @@ def list_installed(dry):
 
 
 def search_clawhub(name, dry):
+    """Return the first matching slug for `name`, or None."""
     code, out, _ = run(["clawhub", "search", name, "--json"], dry)
     if dry:
         return f"dry-{name}"
@@ -78,8 +85,53 @@ def search_clawhub(name, dry):
                 return line.split()[0]
         return None
     if results and isinstance(results, list):
-        return results[0].get("id") or results[0].get("name")
+        first = results[0]
+        return first.get("slug") or first.get("id") or first.get("name")
     return None
+
+
+def inspect_clawhub(slug, dry):
+    """Return metadata dict for a slug, or None.
+
+    The inspect command output includes (at least) the slug, the repository
+    URL, the version, and the description. We need the repo URL to clone.
+    """
+    code, out, _ = run(["clawhub", "inspect", slug, "--json"], dry)
+    if dry:
+        return {
+            "slug": slug,
+            "repository": f"https://example.invalid/dry-run/{slug}.git",
+        }
+    if code != 0:
+        return None
+    try:
+        return json.loads(out)
+    except json.JSONDecodeError:
+        return None
+
+
+def repo_url_from_metadata(meta):
+    """Find the git repository URL in clawhub inspect output.
+
+    Tries several common keys to be resilient to schema changes.
+    """
+    if not isinstance(meta, dict):
+        return None
+    for key in ("repository", "repo", "repoUrl", "source", "git", "homepage"):
+        v = meta.get(key)
+        if isinstance(v, str) and v.startswith(("http://", "https://", "git@", "git://")):
+            return v
+        if isinstance(v, dict):
+            inner = v.get("url") or v.get("git")
+            if isinstance(inner, str) and inner.startswith(("http://", "https://", "git@", "git://")):
+                return inner
+    return None
+
+
+def git_clone(repo_url, target_dir, dry):
+    """Shallow-clone `repo_url` into `target_dir`. Returns (code, stderr)."""
+    code, _, err = run(["git", "clone", "--depth", "1", repo_url, target_dir], dry)
+    return code, err
 
 
 def main():
@@ -94,6 +146,12 @@ def main():
         print("ERROR: config missing or no board_id", file=sys.stderr)
         sys.exit(EXIT_CONFIG)
     creds = load_credentials()
+
+    if dry:
+        print(f"DRY: would read required_skills from card {card_id}")
+        print(f"DRY: would compare against `openclaw skills list`")
+        print(f"DRY: for each missing skill: search → inspect → git clone → audit → install")
+        return
 
     card = api("GET", f"/cards/{card_id}", {"fields": "desc"}, creds)
     meta, _ = parse_meta_block(card.get("desc") or "")
@@ -117,31 +175,42 @@ def main():
             skipped_count += 1
             print(f"SKILL_PRESENT:{name}")
             continue
-        skill_id = search_clawhub(name, dry)
-        if not skill_id:
+
+        slug = search_clawhub(name, dry)
+        if not slug:
             failed.append((name, "not found on clawhub"))
             continue
+
+        meta_inspect = inspect_clawhub(slug, dry)
+        if not meta_inspect:
+            failed.append((name, f"inspect failed for slug {slug}"))
+            continue
+
+        repo_url = repo_url_from_metadata(meta_inspect)
+        if not repo_url:
+            failed.append((name, f"no repository URL in inspect metadata for {slug}"))
+            continue
+
         tmpdir = tempfile.mkdtemp(prefix="skill_")
-        target = os.path.join(tmpdir, name)
-        code, _, err = run(["clawhub", "download", skill_id, "--no-install", "--out", target], dry)
+        target = os.path.join(tmpdir, slug)
+
+        code, err = git_clone(repo_url, target, dry)
         if code != 0:
-            failed.append((name, f"download exit {code}: {err.strip()[:120]}"))
+            failed.append((name, f"git clone exit {code}: {err.strip()[:160]}"))
             continue
-        if dry:
-            print(f"DRY: would audit {target}")
-            print(f"DRY: would install {target}")
-            installed_count += 1
-            continue
+
         code, _, err = run(["python3", audit_script, target], False)
         if code != 0:
             failed.append((name, f"audit failed: {err.strip()[:200]}"))
             continue
+
         code, _, err = run(["openclaw", "skills", "install", target], False)
         if code != 0:
-            failed.append((name, f"install exit {code}: {err.strip()[:120]}"))
+            failed.append((name, f"install exit {code}: {err.strip()[:160]}"))
             continue
+
         installed_count += 1
-        print(f"SKILL_INSTALLED:{name}")
+        print(f"SKILL_INSTALLED:{name} (from {repo_url})")
 
     if failed:
         msg_lines = [f"missing skills for card: {len(failed)} failed"]

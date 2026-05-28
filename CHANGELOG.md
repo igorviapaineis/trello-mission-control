@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] — 2026-05-28
+
+### Fixed
+- Install commands in README, `docs/quickstart.md`, `docs/dev-guide.md`, and `references/install.md` now use `git:github.com/igorviapaineis/trello-mission-control@v3.0.2` instead of `clawhub:igorviapaineis/trello-mission-control`. The plugin has not yet been published to the [ClawHub registry](https://docs.openclaw.ai/clawhub), so the previous `clawhub:` form failed at install time for end users.
+- `scripts/ensure_skills.py` no longer relies on the non-existent `clawhub download <slug> --no-install` flag. New flow: `clawhub search` → `clawhub inspect <slug>` (returns metadata including the git repository URL) → `git clone --depth 1` to a temporary directory → `scripts/skill_audit.py` → `openclaw skills install`. Documented in `SKILL.md` and the architecture sequence diagram.
+- `scripts/skill_audit.py` docstring updated to reflect the new flow.
+
+### Added
+- `docs/troubleshooting.md`: new **Install** section covering the `clawhub:` install failure, `git:` install permission errors, and disabled-after-install diagnostics.
+- `tests/test_ensure_skills_inspect.py` — unit coverage for `repo_url_from_metadata`, plus dry-run safety of `search_clawhub` and `inspect_clawhub`.
+- `tests/smoke.sh` now exercises `ensure_skills.py --dry`.
+
+### Notes
+- A future release will switch the recommended install back to `clawhub:` once the plugin has been published to the ClawHub registry.
+
 ## [3.0.1] — 2026-05-28
 
 ### Added

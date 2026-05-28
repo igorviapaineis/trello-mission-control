@@ -47,8 +47,11 @@ sequenceDiagram
     E->>T: claim cardId executor (POST label claim-executor)
     E->>T: meta-get cardId required_skills
     T-->>E: ["nextjs"]
-    E->>C: clawhub download nextjs --no-install
-    C-->>E: skill folder
+    E->>C: clawhub search nextjs --json
+    C-->>E: slug
+    E->>C: clawhub inspect <slug> --json
+    C-->>E: metadata (repository URL)
+    E->>E: git clone --depth 1 <repo> /tmp/nextjs
     E->>E: skill_audit /tmp/nextjs (exit 0)
     E->>E: openclaw skills install /tmp/nextjs
     Note right of E: do the work

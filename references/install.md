@@ -2,16 +2,18 @@
 
 ## 1. Install the plugin
 
-Via ClawHub (recommended):
+From a tagged GitHub release (recommended for end users):
 
 ```bash
-openclaw plugins install clawhub:igorviapaineis/trello-mission-control
+openclaw plugins install git:github.com/igorviapaineis/trello-mission-control@v3.0.2
 openclaw gateway restart
 openclaw plugins list                 # should show trello-mission-control enabled
 openclaw skills list                  # should include trello-mission-control
 ```
 
-Local development:
+> The plugin will move to `openclaw plugins install clawhub:igorviapaineis/trello-mission-control` once it is published to the [ClawHub](https://docs.openclaw.ai/clawhub) registry. Until then, install from git.
+
+Local development checkout:
 
 ```bash
 git clone https://github.com/igorviapaineis/trello-mission-control ~/.openclaw/skills/trello-mission-control

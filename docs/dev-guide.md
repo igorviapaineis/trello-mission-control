@@ -72,7 +72,7 @@ See OpenClaw's [Building Plugins](https://docs.openclaw.ai/plugins/building-plug
 3. Tag, push, and create a GitHub release.
 4. `npm pack` and submit to ClawHub through the registry's pipeline.
 
-A user installing your release runs `openclaw plugins install clawhub:<org>/<plugin>`.
+A user installing your release runs `openclaw plugins install git:github.com/<org>/<plugin>@<tag>` (or `clawhub:<org>/<plugin>` once the plugin has been published to the ClawHub registry).
 
 ## Adding a new CLI command
 

@@ -8,7 +8,7 @@ OpenClaw plugin for **multi-agent task orchestration via Trello**. The user talk
 ## Quickstart
 
 ```bash
-openclaw plugins install clawhub:igorviapaineis/trello-mission-control
+openclaw plugins install git:github.com/igorviapaineis/trello-mission-control@v3.0.2
 openclaw gateway restart
 export TRELLO_API_KEY='...' TRELLO_TOKEN='...'       # https://trello.com/power-ups/admin
 cd ~/.openclaw/skills/trello-mission-control
@@ -32,7 +32,7 @@ Full setup: [docs/quickstart.md](docs/quickstart.md) · architecture: [docs/arch
 ## Install
 
 ```bash
-openclaw plugins install clawhub:igorviapaineis/trello-mission-control
+openclaw plugins install git:github.com/igorviapaineis/trello-mission-control@v3.0.2
 openclaw gateway restart
 ```
 

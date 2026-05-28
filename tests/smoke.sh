@@ -77,6 +77,7 @@ check "digest" python3 scripts/digest.py --dry
 check "archive_old" python3 scripts/archive_old.py --dry --days 30 --from done
 check "setup_labels" python3 scripts/setup_labels.py --dry
 check "release_my_claims" python3 scripts/release_my_claims.py executor --dry
+check "ensure_skills" python3 scripts/ensure_skills.py CARDID --dry
 
 echo ""
 echo "smoke: $PASS pass / $FAIL fail"
