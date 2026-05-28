@@ -7,9 +7,8 @@ Working locally on the plugin.
 ```bash
 git clone https://github.com/igorviapaineis/trello-mission-control
 cd trello-mission-control
-openclaw plugins install $(pwd)
-openclaw gateway restart
-openclaw plugins list      # confirm trello-mission-control is loaded
+openclaw skills install $(pwd)
+openclaw skills list       # confirm trello-mission-control is loaded
 ```
 
 Alternative: point a workspace at the checkout via `~/.openclaw/openclaw.json`:
@@ -22,12 +21,15 @@ That avoids re-installing on every change. Restart the gateway or run `/new` in 
 
 ## Layout
 
-The repo is a hybrid skill + plugin:
+The repo ships as an OpenClaw **skill** — `SKILL.md` plus `scripts/` and `references/`.
 
-- The skill is the `SKILL.md` plus `scripts/` and `references/` — loadable by OpenClaw on its own.
-- The plugin layer (`openclaw.plugin.json`, `package.json`, `index.ts`) wraps the skill with hooks that the skill alone could not register.
+Lifecycle work that a plugin would normally register as hooks is handled inline by the skill:
 
-You can develop the skill without touching the plugin layer. The hooks are convenient but not required for the CLI to work.
+- `setup_labels.py` runs once after install (documented in `references/install.md`).
+- `release_my_claims.py` runs as the first command in every executor's `HEARTBEAT.md`.
+- `cron_stale_claims.py` runs as a daily cron job to release `claim-*` labels with no activity for 30 minutes.
+
+There is no plugin manifest, no TypeScript entry, no build step.
 
 ## Run tests locally
 
@@ -39,40 +41,34 @@ bash tests/smoke.sh
 
 CI runs the same on Python 3.10, 3.11, 3.12. Match locally before pushing.
 
-## Building `index.ts`
-
-The plugin entry is written in TypeScript and intended to be type-checked locally if you have `tsc` installed:
-
-```bash
-npx tsc --noEmit index.ts
-```
-
-OpenClaw runtime can pick up the TypeScript directly via its plugin loader in dev. For a published bundle you would typically emit a `.js`:
-
-```bash
-npx tsc index.ts --target es2020 --module nodenext --moduleResolution nodenext
-```
-
-We do not commit the built `index.js` — it should be produced by the package build at publish time. (CI does not currently build it; that's tracked as out-of-scope for v3.0.1.)
-
 ## Packaging
 
 ```bash
 npm pack
 ```
 
-This produces `trello-mission-control-<version>.tgz` containing only the `files:` entries from `package.json` (the manifest, SKILL.md, scripts, references, the TS source).
+Produces `trello-mission-control-<version>.tgz` containing the entries listed under `files:` in `package.json` (SKILL.md, scripts, references, docs, tests, CHANGELOG, LICENSE, README, CONTRIBUTING, SECURITY).
 
 ## Publishing to ClawHub
 
-See OpenClaw's [Building Plugins](https://docs.openclaw.ai/plugins/building-plugins) for the official publish flow. Briefly:
+The skill is not yet on the ClawHub registry. When it is, end users will install with:
+
+```bash
+openclaw skills install clawhub:igorviapaineis/trello-mission-control
+```
+
+Publish flow (when the registry pipeline is set up):
 
 1. Bump `package.json` `version`.
 2. Update `CHANGELOG.md`.
 3. Tag, push, and create a GitHub release.
-4. `npm pack` and submit to ClawHub through the registry's pipeline.
+4. Submit to ClawHub via [`clawhub skill publish`](https://docs.openclaw.ai/clawhub).
 
-A user installing your release runs `openclaw plugins install git:github.com/<org>/<plugin>@<tag>` (or `clawhub:<org>/<plugin>` once the plugin has been published to the ClawHub registry).
+Until then, users install from the GitHub release tag:
+
+```bash
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@<tag>
+```
 
 ## Adding a new CLI command
 

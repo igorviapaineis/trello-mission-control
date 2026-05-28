@@ -1,24 +1,15 @@
 // Merge this into your ~/.openclaw/openclaw.json.
 // Adjust agent IDs and per-agent allowlists to your setup.
+//
+// Trello Mission Control ships as a SKILL (not a plugin), so the only
+// plugin entry below is the bundled tokenjuice. The skill itself reads
+// its config from $TRELLO_CONFIG or ./trello_config.json — not from
+// the OpenClaw config tree.
 {
   plugins: {
     entries: {
       // Compact noisy exec/bash output before sending to the model. Bundled.
       tokenjuice: { enabled: true },
-
-      // The Trello Mission Control plugin itself.
-      "trello-mission-control": {
-        enabled: true,
-        config: {
-          board_id: "REPLACE_WITH_BOARD_ID",
-          archive_board_id: "REPLACE_WITH_ARCHIVE_BOARD_ID",
-          templates_list_id: "REPLACE_WITH_TEMPLATES_LIST_ID",
-          agents: {
-            orchestrator: { role: "orchestrator" },
-            executor: { role: "executor", list_id: "EXECUTOR_LIST_ID" },
-          },
-        },
-      },
     },
   },
 

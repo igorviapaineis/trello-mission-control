@@ -1,6 +1,6 @@
 # Trello Mission Control v3
 
-OpenClaw plugin for **multi-agent task orchestration via Trello**. The user talks to one orchestrator agent; the orchestrator creates Trello cards; executor agents pick them up from their list on heartbeat and execute. Communication between agents is exclusively through cards — never internal messages.
+OpenClaw **skill** for multi-agent task orchestration via Trello. The user talks to one orchestrator agent; the orchestrator creates Trello cards; executor agents pick them up from their list on heartbeat and execute. Communication between agents is exclusively through cards — never internal messages.
 
 [![ci](https://github.com/igorviapaineis/trello-mission-control/actions/workflows/ci.yml/badge.svg)](https://github.com/igorviapaineis/trello-mission-control/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -8,18 +8,17 @@ OpenClaw plugin for **multi-agent task orchestration via Trello**. The user talk
 ## Quickstart
 
 ```bash
-openclaw plugins install git:github.com/igorviapaineis/trello-mission-control@v3.0.2
-openclaw gateway restart
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.3
 export TRELLO_API_KEY='...' TRELLO_TOKEN='...'       # https://trello.com/power-ups/admin
 cd ~/.openclaw/skills/trello-mission-control
 python3 scripts/trello_task.py init                  # fill IDs in the generated config
-python3 scripts/setup_labels.py                      # create canonical labels
+python3 scripts/setup_labels.py                      # one-shot: create canonical labels
 python3 scripts/digest.py                            # smoke
 ```
 
 Then copy `references/agent-templates/` into `~/.openclaw/workspace-<agent>/` for each agent, and merge `references/snippets/` into `~/.openclaw/openclaw.json` and `~/.openclaw/exec-approvals.json`.
 
-Full setup: [docs/quickstart.md](docs/quickstart.md) · architecture: [docs/architecture.md](docs/architecture.md) · worked example: [docs/walkthrough.md](docs/walkthrough.md) · troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md) · contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · security: [SECURITY.md](SECURITY.md).
+Full setup: [docs/quickstart.md](docs/quickstart.md) · architecture: [docs/architecture.md](docs/architecture.md) · worked example: [docs/walkthrough.md](docs/walkthrough.md) · troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md) · migration from 3.0.0–3.0.2: [docs/migrating-from-3.0.x.md](docs/migrating-from-3.0.x.md) · contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · security: [SECURITY.md](SECURITY.md).
 
 ## Why
 
@@ -32,8 +31,7 @@ Full setup: [docs/quickstart.md](docs/quickstart.md) · architecture: [docs/arch
 ## Install
 
 ```bash
-openclaw plugins install git:github.com/igorviapaineis/trello-mission-control@v3.0.2
-openclaw gateway restart
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.3
 ```
 
 Full setup steps (board creation, credentials, workspaces, config snippets, smoke test): see `references/install.md`.
@@ -46,25 +44,24 @@ User --chat--> Orchestrator --create card--> Trello board <--heartbeat--> Execut
 
 Each agent has its own OpenClaw workspace at `~/.openclaw/workspace-<agent>/` containing the standard files (`AGENTS.md`, `SOUL.md`, `HEARTBEAT.md`, `MEMORY.md`, etc). Templates for both roles live in `references/agent-templates/`.
 
-The plugin manifest (`openclaw.plugin.json`) wires three lifecycle hooks:
+Lifecycle is managed inline by the skill — no plugin hooks are registered:
 
-- `onGatewayStart` → `setup_labels.py` (ensure canonical labels exist).
-- `onSessionStart` → print active claims for this agent.
-- `onSessionStop` → `release_my_claims.py` (free anything left claimed).
+- **Post-install setup** → run `setup_labels.py` once after install (creates canonical labels).
+- **End of every executor tick** → `release_my_claims.py` at the top of `HEARTBEAT.md` releases any claim left from the previous tick.
+- **Stale-claim safety net** → schedule `cron_stale_claims.py` daily to release `claim-*` labels older than 30 minutes (covers crashes that skip the heartbeat cleanup).
 
 ## What's in the box
 
 | Path | Purpose |
 |---|---|
 | `SKILL.md` | Protocol document loaded into every agent session |
-| `openclaw.plugin.json` | Plugin manifest (hooks, config schema) |
-| `index.ts` | Plugin entry — registers hooks |
 | `scripts/trello_task.py` | Main CLI (one command per Trello operation + claim/release/meta/template) |
 | `scripts/digest.py` | One-call board summary for the orchestrator |
 | `scripts/archive_old.py` | Nightly free-tier hygiene |
 | `scripts/wake_on_urgent.py` | Trigger executor heartbeat immediately on `urgente` |
-| `scripts/setup_labels.py` | Idempotent canonical-label setup |
-| `scripts/release_my_claims.py` | Hook payload for `onSessionStop` |
+| `scripts/setup_labels.py` | Idempotent canonical-label setup (run once post-install) |
+| `scripts/release_my_claims.py` | Called at the top of every executor `HEARTBEAT.md` tick |
+| `scripts/cron_stale_claims.py` | Daily janitor that releases stale `claim-*` labels |
 | `scripts/skill_audit.py` | Static scan of a clawhub skill before install |
 | `scripts/ensure_skills.py` | Reads `required_skills` from a card; installs missing skills |
 | `scripts/attach_dir.py` | gzip + attach a directory (10 MB Trello free cap) |

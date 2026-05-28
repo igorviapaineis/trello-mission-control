@@ -3,6 +3,11 @@
 Run these steps in order. Replace `<MY_LIST>` and `<MY_AGENT_ID>` with the executor's actual values.
 
 ```bash
+# 0. Release any claim left behind from a previous tick that did not finish cleanly.
+#    This replaces the former plugin onSessionStop hook.
+python3 ~/.openclaw/skills/trello-mission-control/scripts/release_my_claims.py <MY_AGENT_ID>
+
+# 1. Pick up new work from my list.
 python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py get <MY_LIST>
 ```
 
@@ -26,7 +31,7 @@ When done, write the completion summary:
 
 ```bash
 python3 ~/.openclaw/skills/trello-mission-control/scripts/update_card_complete.py <CARD_ID> \
-  --resultado "..." \
+  --result "..." \
   --changes "file:line — ..." \
   --metric "..." \
   --check-step "..." \

@@ -14,8 +14,7 @@ Thanks for your interest in improving Trello Mission Control. This document tell
 ```bash
 git clone https://github.com/igorviapaineis/trello-mission-control
 cd trello-mission-control
-openclaw plugins install $(pwd)
-openclaw gateway restart
+openclaw skills install $(pwd)
 ```
 
 You can also point a workspace at the local checkout via `~/.openclaw/openclaw.json`:

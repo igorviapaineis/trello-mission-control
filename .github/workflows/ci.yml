@@ -31,7 +31,6 @@ jobs:
           python3 -c "
           import json, sys
           paths = [
-            'openclaw.plugin.json',
             'package.json',
             'references/example-config.json',
             'references/snippets/exec-approvals.snippet.json',

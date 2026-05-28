@@ -1,24 +1,21 @@
 # Install — Trello Mission Control v3
 
-## 1. Install the plugin
+## 1. Install the skill
 
 From a tagged GitHub release (recommended for end users):
 
 ```bash
-openclaw plugins install git:github.com/igorviapaineis/trello-mission-control@v3.0.2
-openclaw gateway restart
-openclaw plugins list                 # should show trello-mission-control enabled
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.3
 openclaw skills list                  # should include trello-mission-control
 ```
 
-> The plugin will move to `openclaw plugins install clawhub:igorviapaineis/trello-mission-control` once it is published to the [ClawHub](https://docs.openclaw.ai/clawhub) registry. Until then, install from git.
+> The skill will move to `openclaw skills install clawhub:igorviapaineis/trello-mission-control` once it is published to the [ClawHub](https://docs.openclaw.ai/clawhub) registry. Until then, install from git.
 
 Local development checkout:
 
 ```bash
 git clone https://github.com/igorviapaineis/trello-mission-control ~/.openclaw/skills/trello-mission-control
-openclaw plugins install ~/.openclaw/skills/trello-mission-control
-openclaw gateway restart
+# the skill is now resolvable from this path on the next session (no plugin install needed)
 ```
 
 ## 2. Set credentials
@@ -88,11 +85,45 @@ python3 scripts/digest.py
 
 Open the orchestrator workspace (`openclaw chat orchestrator` or your usual channel) and send a test message — orchestrator should create a card in the executor list. The executor picks it up on the next heartbeat (within 30 min, or seconds if you label `urgente`).
 
+## Post-install lifecycle wiring
+
+This is a skill, not a plugin, so it does not register lifecycle hooks. Three small pieces of glue replace what the former plugin hooks did:
+
+1. **One-shot, post-install**: ensure canonical labels exist on the board.
+
+   ```bash
+   python3 ~/.openclaw/skills/trello-mission-control/scripts/setup_labels.py
+   ```
+
+2. **Start of every executor heartbeat**: release any claim that the previous tick left behind.
+
+   The shipped `references/agent-templates/executor/HEARTBEAT.md.template` already runs:
+
+   ```bash
+   python3 ~/.openclaw/skills/trello-mission-control/scripts/release_my_claims.py <MY_AGENT_ID>
+   ```
+
+   as its first step. Keep that line in your `~/.openclaw/workspace-<agent>/HEARTBEAT.md`.
+
+3. **Daily safety net**: a cron job that releases `claim-*` labels with no activity for 30 minutes. Covers crashes that skip the heartbeat cleanup.
+
+   Via OpenClaw cron ([docs](https://docs.openclaw.ai/automation/cron-jobs)):
+
+   ```bash
+   openclaw cron add stale-claims --schedule "0 4 * * *" \
+     --command "python3 ~/.openclaw/skills/trello-mission-control/scripts/cron_stale_claims.py"
+   ```
+
+   Or system crontab:
+
+   ```cron
+   0 4 * * * python3 ~/.openclaw/skills/trello-mission-control/scripts/cron_stale_claims.py
+   ```
+
 ## Update flow
 
 ```bash
-openclaw plugins update trello-mission-control
-openclaw gateway restart
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@<new-tag>
 ```
 
 Or in each running session: `/new` recreates the skill snapshot.

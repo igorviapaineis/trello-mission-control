@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.3] — 2026-05-28
+
+### Removed
+- `openclaw.plugin.json` and `index.ts` — the project no longer ships as an OpenClaw plugin. It is a skill, installed via `openclaw skills install git:...`. The previous plugin layer never installed successfully because the manifest was missing the required `openclaw.extensions` field and `index.ts` imported a non-existent SDK package.
+- The `openclaw.*` block, `main` field, and `type` field in `package.json` (npm metadata remains for `npm pack` distribution).
+- `plugins.entries.trello-mission-control` from `references/snippets/openclaw-config.snippet.json5`.
+- Building / packaging sections in `docs/dev-guide.md` that referenced `index.ts` and the plugin SDK.
+
+### Changed
+- Install command in README, quickstart, install.md, dev-guide, troubleshooting, walkthrough, and CONTRIBUTING changed from `openclaw plugins install` to `openclaw skills install`. `openclaw gateway restart` is no longer required for first install.
+- `references/agent-templates/executor/HEARTBEAT.md.template` now runs `release_my_claims.py <agent>` at the start of every tick as a replacement for the former `onSessionStop` lifecycle hook.
+- `references/install.md` documents the new post-install lifecycle wiring (one-shot `setup_labels.py`, inline release at heartbeat start, daily `cron_stale_claims.py`).
+- `docs/architecture.md` drops the L2 plugin layer; "Why these specific choices" explains the trade-off versus a real plugin.
+- `docs/troubleshooting.md` adds an entry for the exact error `package.json missing openclaw.extensions` and updates the operational guidance away from `openclaw plugins list` / `openclaw gateway restart`.
+- `SKILL.md` frontmatter no longer references the (now-removed) plugin config path.
+- `.github/workflows/ci.yml` drops `openclaw.plugin.json` from JSON validation.
+
+### Added
+- `scripts/cron_stale_claims.py` — daily janitor that releases `claim-*` labels whose card has no activity for 30 minutes (configurable via `--minutes`). Replaces the missing `onSessionStop` hook for sessions that crash without running the HEARTBEAT cleanup.
+- `tests/test_cron_stale_claims.py` — pure helper coverage for the stale-window filter and ISO parsing.
+- `tests/smoke.sh` adds a dry-run case for `cron_stale_claims.py`.
+- `docs/migrating-from-3.0.x.md` — concrete migration steps for anyone who attempted 3.0.0–3.0.2.
+
+### Notes
+- A real OpenClaw plugin (with correct `openclaw.extensions` manifest, compiled `dist/index.js`, and hooks mapped to the real `api.on(...)` / `api.registerHook(...)` surface) is on the roadmap for a future minor release. The skill-only form is functionally complete for the canonical workflow.
+- Label names (`urgente`, `bloqueado`, `revisao`, `pediu`, `qa-failed`) and the structured card layout are unchanged from 3.0.1/3.0.2.
+
 ## [3.0.2] — 2026-05-28
 
 ### Fixed

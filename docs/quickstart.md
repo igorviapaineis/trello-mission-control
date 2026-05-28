@@ -3,9 +3,8 @@
 Get a working 2-agent setup in 5 minutes.
 
 ```bash
-# 1. Install the plugin (git source; will move to `clawhub:igorviapaineis/trello-mission-control` once published)
-openclaw plugins install git:github.com/igorviapaineis/trello-mission-control@v3.0.2
-openclaw gateway restart
+# 1. Install the skill (git source; will move to `clawhub:igorviapaineis/trello-mission-control` once published)
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.3
 
 # 2. Set Trello credentials
 export TRELLO_API_KEY='...'      # https://trello.com/power-ups/admin

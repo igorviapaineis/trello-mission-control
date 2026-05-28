@@ -2,25 +2,35 @@
 
 ## Install
 
-### `openclaw plugins install clawhub:igorviapaineis/trello-mission-control` fails
+### `openclaw plugins install ...` errors with `package.json missing openclaw.extensions`
+Symptom: trying to install as a plugin fails with that exact error.
+
+Cause: this project ships as an OpenClaw **skill**, not a plugin. The `plugins install` subcommand expects a valid plugin manifest with an `openclaw.extensions` field, which this project does not declare.
+
+Fix: use the `skills install` subcommand:
+
+```bash
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.3
+```
+
+### `openclaw skills install clawhub:igorviapaineis/trello-mission-control` fails
 Symptom: the install errors with `package not found in registry`, `unknown source`, or similar.
 
-Cause: the plugin has not yet been published to the [ClawHub](https://docs.openclaw.ai/clawhub) registry. The `clawhub:` prefix only resolves names that the registry knows about.
+Cause: the skill has not yet been published to the [ClawHub](https://docs.openclaw.ai/clawhub) registry. The `clawhub:` prefix only resolves names that the registry knows about.
 
 Fix: install from the GitHub release tag instead:
 
 ```bash
-openclaw plugins install git:github.com/igorviapaineis/trello-mission-control@v3.0.2
-openclaw gateway restart
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.3
 ```
 
 Pick the tag you want from https://github.com/igorviapaineis/trello-mission-control/releases.
 
-### `openclaw plugins install git:...` fails with permission denied
-Cause: SSH-style URL into a private repo or missing git credentials. The plugin's repo is public, so this should not happen. Verify the URL form is `git:github.com/<owner>/<repo>@<ref>` (not `git@github.com:...`) and that `git ls-remote https://github.com/igorviapaineis/trello-mission-control` works for you.
+### `openclaw skills install git:...` fails with permission denied
+Cause: SSH-style URL into a private repo or missing git credentials. This repo is public, so this should not happen. Verify the URL form is `git:github.com/<owner>/<repo>@<ref>` (not `git@github.com:...`) and that `git ls-remote https://github.com/igorviapaineis/trello-mission-control` works for you.
 
-### Plugin installs but `openclaw plugins list` shows it disabled
-Run `openclaw plugins enable trello-mission-control` then `openclaw gateway restart`.
+### Skill installs but `openclaw skills list` does not show it
+Run `/new` in the open session, or restart the gateway with `openclaw gateway restart`. The skill snapshot rebuilds on the next session.
 
 ## Exit codes
 
@@ -77,26 +87,29 @@ Less than 20 token requests remaining in the current 10-second window. Not fatal
 
 ## Operational problems
 
-### A hook didn't fire
-Symptom: starting an agent session, you don't see "You have N cards claimed", or ending it doesn't release claims.
+### Release on heartbeat didn't run
+Symptom: a card stays claimed by an agent that has clearly moved on (its `dateLastActivity` is hours old).
+
+Cause: the executor's `HEARTBEAT.md` is missing the first line that calls `release_my_claims.py`. Or the heartbeat is not firing at all.
 
 Check:
 ```bash
-openclaw plugins list                          # is trello-mission-control listed enabled?
-openclaw plugins config trello-mission-control # is the config block present?
-openclaw gateway restart                       # try a clean reload
+openclaw skills list                            # is trello-mission-control listed?
+head ~/.openclaw/workspace-<agent>/HEARTBEAT.md # first command should be release_my_claims.py
 ```
 
-If still failing, run the hook payload manually to isolate:
+Force a manual cleanup:
 ```bash
-python3 scripts/release_my_claims.py <agent> --dry
+python3 ~/.openclaw/skills/trello-mission-control/scripts/release_my_claims.py <agent>
 ```
+
+Or wait for the daily `cron_stale_claims.py` to sweep stale `claim-*` labels.
 
 ### `setup_labels.py` created duplicates
 Cause: a previous run created a label with the wrong color, then a config edit changed expectations. Delete the duplicates in the Trello UI, then re-run `python3 scripts/setup_labels.py`. The script reuses any label with the right name regardless of color.
 
-### A card jumped back into `inbox` on its own
-Cause: an agent's session was killed mid-task, and the `onSessionStop` hook ran `release_my_claims.py`. The card lost its `claim-<agent>` label and the next executor heartbeat picks it up. This is correct behaviour — the alternative is leaking claims forever.
+### A card lost its `claim-<agent>` label on its own
+Cause: either the next executor heartbeat started with `release_my_claims.py` (which clears claims left from the previous tick) or the daily `cron_stale_claims.py` swept a `claim-*` label whose card had no activity for 30 min. Both are intentional — the alternative is leaking claims forever.
 
 If you want a card to *stay* claimed across a planned restart, comment with `--tag note "expect resume"` so the orchestrator's digest can flag it as long-running.
 

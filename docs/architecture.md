@@ -63,13 +63,9 @@ sequenceDiagram
 ## Layers
 
 ```
-L3 — Per-agent workspace (~/.openclaw/workspace-<agent>/)
+L2 — Per-agent workspace (~/.openclaw/workspace-<agent>/)
      Standard OpenClaw files: AGENTS.md, SOUL.md, USER.md, IDENTITY.md,
      TOOLS.md, HEARTBEAT.md, MEMORY.md, memory/YYYY-MM-DD.md.
-
-L2 — Plugin (~/.openclaw/plugins/trello-mission-control/)
-     openclaw.plugin.json declares hooks + config schema.
-     index.ts registers onGatewayStart, onSessionStart, onSessionStop.
 
 L1 — Skill (~/.openclaw/skills/trello-mission-control/)
      SKILL.md with YAML frontmatter.
@@ -83,7 +79,7 @@ L0 — Global config
 
 ## Why these specific choices
 
-- **Plugin vs skill-only**: a plugin can bundle hooks and config schema. The skill alone could not register `onSessionStop` to release claims when an agent session dies.
+- **Skill, not plugin**: an OpenClaw plugin can register typed runtime hooks but requires a built JS entry, a valid `openclaw.extensions` manifest, and a pinned plugin-API version. None of that is worth the cost for the three lifecycle moments this project cares about. We replace those moments with `setup_labels.py` (post-install), an inline `release_my_claims.py` at the top of every executor heartbeat, and a daily `cron_stale_claims.py` janitor. Trade-off: a session that crashes between the last claim and the next heartbeat leaves its claim stuck until the cron runs; in practice that's a few hours at most.
 - **Label-based claim**: the Trello API has no compare-and-swap. A label is visible in the UI, simple to query, and the race window (read labels → POST label) is ~200ms — small enough that two agents almost never race on the same card.
 - **One nested `/boards/{id}/cards` call**: replaces `pipeline-status` and `digest`'s previous N+1. Saves rate-limit budget and reduces orchestrator latency.
 - **JSON meta block in `desc`**: Trello Free has no custom fields. Putting structured metadata in a comment-style block keeps the description readable and parseable.
@@ -95,17 +91,16 @@ L0 — Global config
 
 ```
 trello-mission-control/
-├── openclaw.plugin.json    # plugin manifest
-├── package.json            # npm metadata + version
-├── index.ts                # plugin entry: hook registration
+├── package.json            # npm metadata + version (no plugin manifest)
 ├── SKILL.md                # protocol document loaded into every agent session
 ├── scripts/                # CLI (Python 3 stdlib only)
 │   ├── trello_task.py      # main CLI
 │   ├── digest.py           # 1-call orchestrator summary
 │   ├── archive_old.py      # nightly archive cron payload
 │   ├── wake_on_urgent.py   # openclaw heartbeat wake wrapper
-│   ├── setup_labels.py     # idempotent label setup (also onGatewayStart hook)
-│   ├── release_my_claims.py# onSessionStop hook payload
+│   ├── setup_labels.py     # idempotent label setup (one-shot, post-install)
+│   ├── release_my_claims.py# called at the top of every executor HEARTBEAT tick
+│   ├── cron_stale_claims.py# daily janitor for stale claim-* labels
 │   ├── skill_audit.py      # static scan for clawhub skills
 │   ├── ensure_skills.py    # reads required_skills, installs missing
 │   ├── attach_dir.py       # gzip a dir, attach (10 MB cap)

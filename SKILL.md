@@ -6,7 +6,9 @@ metadata:
     requires:
       bins: [python3]
       env: [TRELLO_API_KEY, TRELLO_TOKEN]
-      config: [plugins.entries.trello-mission-control.config.board_id]
+      # The skill reads its config from $TRELLO_CONFIG or ./trello_config.json
+      # (see scripts/trello_task.py:load_config). No openclaw.json config keys
+      # are required at the OpenClaw layer.
 ---
 
 # Trello Mission Control v3
