@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "defaults": {
+    "security": "deny",
+    "ask": "on-miss",
+    "askFallback": "deny",
+    "autoAllowSkills": true
+  },
+  "agents": {
+    "orchestrator": {
+      "allowlist": [
+        {
+          "pattern": "python3",
+          "argPattern": "^.*/(trello_task|digest|wake_on_urgent|archive_old|setup_labels|update_card_complete|attach_dir)\\.py.*$",
+          "source": "allow-always"
+        }
+      ]
+    },
+    "executor": {
+      "allowlist": [
+        {
+          "pattern": "python3",
+          "argPattern": "^.*/trello_task\\.py (get|claim|release|claimed-by|comment|move|next|prev|done|card|board|meta-get|meta-set|activity|attach|template|search|overdue|label|unlabel|desc|due|checklist|rate-budget)\\b.*$",
+          "source": "allow-always"
+        },
+        {
+          "pattern": "python3",
+          "argPattern": "^.*/(ensure_skills|skill_audit|update_card_complete|attach_dir|release_my_claims|digest)\\.py.*$",
+          "source": "allow-always"
+        },
+        {
+          "pattern": "openclaw",
+          "argPattern": "^(skills|gateway)\\b.*$",
+          "source": "allow-always"
+        },
+        {
+          "pattern": "clawhub",
+          "argPattern": "^(search|download|info)\\b.*$",
+          "source": "allow-always"
+        }
+      ]
+    }
+  }
+}

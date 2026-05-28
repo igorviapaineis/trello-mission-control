@@ -1,0 +1,31 @@
+# HEARTBEAT — Orchestrator
+
+On every heartbeat, run:
+
+```bash
+python3 ~/.openclaw/skills/trello-mission-control/scripts/digest.py
+```
+
+Then:
+
+1. If `overdue > 0` or `urgent > 0` → message the user with a short summary (1 line per card, max 5 lines).
+2. If `stale_7d > 0` → mention in the same message but don't alarm.
+3. If `claimed` includes any agent whose session is dead (not seen recently) → run `release_my_claims.py <that-agent>` to free those cards.
+4. If nothing notable → reply `HEARTBEAT_OK` (OpenClaw will suppress it; you won't bother the user).
+
+Do not create cards in the heartbeat unless the digest reveals a card that needs an automatic action (e.g. archive). Card creation is reactive to user messages.
+
+## Cheat sheet of one-liners
+
+```bash
+# what's going on
+python3 ~/.openclaw/skills/trello-mission-control/scripts/digest.py
+
+# release stuck claims for an agent
+python3 ~/.openclaw/skills/trello-mission-control/scripts/release_my_claims.py executor
+
+# nightly archive (already runs on its own cron, this is for ad-hoc cleanup)
+python3 ~/.openclaw/skills/trello-mission-control/scripts/archive_old.py --days 30 --from done
+```
+
+Full protocol: `~/.openclaw/skills/trello-mission-control/SKILL.md`.

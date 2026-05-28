@@ -1,0 +1,50 @@
+# HEARTBEAT — Executor
+
+Run these steps in order. Replace `<MY_LIST>` and `<MY_AGENT_ID>` with the executor's actual values.
+
+```bash
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py get <MY_LIST>
+```
+
+- Output `NO_CARDS` → reply `HEARTBEAT_OK` and stop.
+- Otherwise pick the card to work on:
+  - First any with label `urgente`.
+  - Otherwise the oldest one without any `claim-*` label.
+
+For the chosen card, in order:
+
+```bash
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py claim <CARD_ID> <MY_AGENT_ID>
+# exit 5 → skip this card, try the next one
+python3 ~/.openclaw/skills/trello-mission-control/scripts/ensure_skills.py <CARD_ID>
+# exit 8 → card was blocked; skip
+```
+
+Now do the work. Capture the diff to `/tmp/diff.patch` and any logs to `/tmp/...log`.
+
+When done, write the completion summary:
+
+```bash
+python3 ~/.openclaw/skills/trello-mission-control/scripts/update_card_complete.py <CARD_ID> \
+  --resultado "..." \
+  --changes "file:line — ..." \
+  --metric "..." \
+  --check-step "..." \
+  --attach /tmp/diff.patch \
+  --comment "1-liner" \
+  --agent <MY_AGENT_ID>
+```
+
+Advance or finish:
+
+```bash
+# pipeline → handoff
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py next <CARD_ID> --expect <MY_LIST>
+
+# or single-stage → done
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py done <CARD_ID>
+```
+
+Loop until the list is empty, then reply `HEARTBEAT_OK`.
+
+Full protocol: `~/.openclaw/skills/trello-mission-control/SKILL.md`.

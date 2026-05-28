@@ -1,0 +1,31 @@
+{
+  "name": "trello-mission-control",
+  "version": "3.0.0",
+  "description": "OpenClaw plugin for multi-agent task orchestration via Trello.",
+  "main": "index.js",
+  "type": "module",
+  "openclaw": {
+    "minVersion": "0.1.0",
+    "plugin": "openclaw.plugin.json"
+  },
+  "files": [
+    "openclaw.plugin.json",
+    "SKILL.md",
+    "index.js",
+    "index.ts",
+    "scripts/",
+    "references/"
+  ],
+  "keywords": [
+    "openclaw",
+    "trello",
+    "multi-agent",
+    "orchestration",
+    "clawhub"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/igorviapaineis/trello-mission-control"
+  }
+}

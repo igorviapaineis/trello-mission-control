@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "name": "auto-label stale 7d",
+      "type": "calendar",
+      "schedule": "daily",
+      "time": "04:00",
+      "boardId": "REPLACE_WITH_BOARD_ID",
+      "filter": {
+        "lastActivityDays": 7,
+        "notHasLabel": "stale"
+      },
+      "actions": [
+        { "type": "addLabel", "labelId": "REPLACE_WITH_STALE_LABEL_ID" },
+        {
+          "type": "addComment",
+          "text": "[{date.iso} | @butler | note] stale: 7d no activity"
+        }
+      ]
+    }
+  ]
+}

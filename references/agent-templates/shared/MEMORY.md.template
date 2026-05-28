@@ -1,0 +1,19 @@
+# MEMORY.md
+
+This file is **curated by the user**. It holds durable facts, preferences, and decisions that should survive across sessions. The agent should read it on every session but should not write to it.
+
+Daily session notes go in `memory/YYYY-MM-DD.md` — the agent can append there.
+
+## What belongs here
+
+- Lasting preferences (language, tone, deadlines, working hours).
+- Stable architectural facts about the user's projects.
+- "Lessons learned" that the user explicitly wants persisted.
+
+## What does not belong here
+
+- Per-card chatter — that lives on the Trello card.
+- Status updates — those are in Trello's activity log.
+- Anything ephemeral.
+
+Start empty. Add only what the user explicitly asks you to remember.

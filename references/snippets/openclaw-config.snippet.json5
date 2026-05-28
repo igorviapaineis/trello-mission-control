@@ -1,0 +1,46 @@
+// Merge this into your ~/.openclaw/openclaw.json.
+// Adjust agent IDs and per-agent allowlists to your setup.
+{
+  plugins: {
+    entries: {
+      // Compact noisy exec/bash output before sending to the model. Bundled.
+      tokenjuice: { enabled: true },
+
+      // The Trello Mission Control plugin itself.
+      "trello-mission-control": {
+        enabled: true,
+        config: {
+          board_id: "REPLACE_WITH_BOARD_ID",
+          archive_board_id: "REPLACE_WITH_ARCHIVE_BOARD_ID",
+          templates_list_id: "REPLACE_WITH_TEMPLATES_LIST_ID",
+          agents: {
+            orchestrator: { role: "orchestrator" },
+            executor: { role: "executor", list_id: "EXECUTOR_LIST_ID" },
+          },
+        },
+      },
+    },
+  },
+
+  agents: {
+    defaults: {
+      skills: ["trello-mission-control"],
+      heartbeat: { every: "30m" },
+    },
+    list: [
+      {
+        id: "orchestrator",
+        skills: ["trello-mission-control"],
+        tools: { allow: ["exec", "read", "write", "message"] },
+      },
+      {
+        id: "executor",
+        skills: ["trello-mission-control"],
+        tools: { allow: ["exec", "read", "write"] },
+      },
+      // To add more executors, copy the executor entry and rename `id`.
+      // Run `python3 scripts/setup_labels.py` afterwards so the
+      // claim-<new-agent> label gets created on the board.
+    ],
+  },
+}
