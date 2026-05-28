@@ -79,6 +79,7 @@ check "setup_labels" python3 scripts/setup_labels.py --dry
 check "release_my_claims" python3 scripts/release_my_claims.py executor --dry
 check "ensure_skills" python3 scripts/ensure_skills.py CARDID --dry
 check "cron_stale_claims" python3 scripts/cron_stale_claims.py --dry
+check "doctor" python3 scripts/doctor.py --dry
 
 echo ""
 echo "smoke: $PASS pass / $FAIL fail"

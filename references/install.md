@@ -5,7 +5,7 @@
 From a tagged GitHub release (recommended for end users):
 
 ```bash
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.3
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.4
 openclaw skills list                  # should include trello-mission-control
 ```
 
@@ -31,11 +31,19 @@ Best practice: one token per agent, never share. The per-token rate limit is `10
 
 ## 3. Create the board
 
-Follow `references/board-template.md`. Briefly:
+**The active board must exist before you run any other step** — `setup_labels.py` writes to it, and `doctor.py` checks against it. Follow `references/board-template.md`. Briefly:
 
 - Active board with lists `inbox`, `<executor list>`, `done`, `_templates`.
 - Archive board (empty — `archive_old.py` populates).
 - Run `python3 scripts/setup_labels.py` to create the canonical 8-label set.
+
+## 3a. Verify your setup so far
+
+```bash
+python3 scripts/doctor.py
+```
+
+10 numbered checks run. Exit 0 means the install is healthy through step 3. Exit 9 prints which check failed and why; see `docs/troubleshooting.md` for fixes.
 
 ## 4. Wire up OpenClaw config
 

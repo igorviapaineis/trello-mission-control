@@ -90,6 +90,7 @@ EXIT_ALREADY_CLAIMED = 5
 EXIT_LOW_BUDGET = 6
 EXIT_STATE_DRIFT = 7
 EXIT_SKILL_AUDIT = 8
+EXIT_DOCTOR_FAIL = 9
 
 VERBOSE = False
 LAST_RATE = {"token_remaining": None, "key_remaining": None, "token_max": None, "key_max": None}

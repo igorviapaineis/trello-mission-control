@@ -8,12 +8,12 @@ OpenClaw **skill** for multi-agent task orchestration via Trello. The user talks
 ## Quickstart
 
 ```bash
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.3
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.4
 export TRELLO_API_KEY='...' TRELLO_TOKEN='...'       # https://trello.com/power-ups/admin
 cd ~/.openclaw/skills/trello-mission-control
 python3 scripts/trello_task.py init                  # fill IDs in the generated config
 python3 scripts/setup_labels.py                      # one-shot: create canonical labels
-python3 scripts/digest.py                            # smoke
+python3 scripts/doctor.py                            # verify everything is wired up (exit 0 = good)
 ```
 
 Then copy `references/agent-templates/` into `~/.openclaw/workspace-<agent>/` for each agent, and merge `references/snippets/` into `~/.openclaw/openclaw.json` and `~/.openclaw/exec-approvals.json`.
@@ -31,7 +31,7 @@ Full setup: [docs/quickstart.md](docs/quickstart.md) · architecture: [docs/arch
 ## Install
 
 ```bash
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.3
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.4
 ```
 
 Full setup steps (board creation, credentials, workspaces, config snippets, smoke test): see `references/install.md`.
@@ -60,6 +60,7 @@ Lifecycle is managed inline by the skill — no plugin hooks are registered:
 | `scripts/archive_old.py` | Nightly free-tier hygiene |
 | `scripts/wake_on_urgent.py` | Trigger executor heartbeat immediately on `urgente` |
 | `scripts/setup_labels.py` | Idempotent canonical-label setup (run once post-install) |
+| `scripts/doctor.py` | End-to-end setup verification (10 numbered checks) |
 | `scripts/release_my_claims.py` | Called at the top of every executor `HEARTBEAT.md` tick |
 | `scripts/cron_stale_claims.py` | Daily janitor that releases stale `claim-*` labels |
 | `scripts/skill_audit.py` | Static scan of a clawhub skill before install |
@@ -117,6 +118,7 @@ python3 scripts/digest.py
 | 6 | Low rate-limit budget |
 | 7 | State drift (pipeline `--expect` mismatch) |
 | 8 | Skill audit failure |
+| 9 | Doctor check failure |
 
 ## License
 

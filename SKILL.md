@@ -1,19 +1,84 @@
 ---
 name: trello-mission-control
-description: Multi-agent task orchestration via Trello — claim, pipeline, archive, digest, skill discovery, card hygiene.
+description: "Multi-agent task orchestration via Trello — claim, pipeline, archive, digest, skill discovery, card hygiene."
 metadata:
   openclaw:
+    emoji: "📋"
     requires:
-      bins: [python3]
+      bins: [python3, git, openclaw]
       env: [TRELLO_API_KEY, TRELLO_TOKEN]
-      # The skill reads its config from $TRELLO_CONFIG or ./trello_config.json
-      # (see scripts/trello_task.py:load_config). No openclaw.json config keys
-      # are required at the OpenClaw layer.
 ---
 
-# Trello Mission Control v3
+# Trello Mission Control
 
-Multi-agent task coordination via Trello. The user talks only to an **orchestrator** agent; the orchestrator creates cards; **executor** agents pick them up from their list on heartbeat and execute. Communication between agents is **only** through cards — never through agent_send or sub-agent sessions.
+Multi-agent task coordination via Trello. The user talks only to an **orchestrator** agent; the orchestrator creates cards; **executor** agents pick them up from their list on heartbeat and execute. Communication between agents is **only** through cards — never through `agent_send` or sub-agent sessions.
+
+## Prerequisites
+
+Before installing this skill make sure you have:
+
+- Python ≥ 3.10 (`python3 --version`)
+- `openclaw` CLI on `PATH` (`openclaw --version`)
+- `git`
+- A Trello account with:
+  - An API key + token from <https://trello.com/power-ups/admin>
+  - **Two boards already created**: one active board (e.g. `Mission Control`) and one archive board (e.g. `Mission Control — Archive`)
+  - On the active board, lists: `inbox`, `executor`, `done`, `_templates`
+- One OpenClaw workspace per agent (default: `orchestrator` and `executor`)
+
+If any of the above is missing, `scripts/doctor.py` (step 5 of the Quickstart) will tell you which.
+
+## Quickstart
+
+```bash
+# 1. Install the skill (git source until published to ClawHub)
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.4
+
+# 2. Export Trello credentials (every script reads them from the environment)
+export TRELLO_API_KEY='...'
+export TRELLO_TOKEN='...'
+# persist in ~/.zshrc or ~/.bashrc so they survive new shells
+
+# 3. Generate the config template, then fill in the IDs
+cd ~/.openclaw/skills/trello-mission-control
+python3 scripts/trello_task.py init
+$EDITOR trello_config.json
+#   board_id          → from the URL of your active board (https://trello.com/b/<id>/...)
+#   archive_board_id  → from the URL of the archive board
+#   templates_list_id → after creating the _templates list, get its ID via `board`
+#   lists.*           → `python3 scripts/trello_task.py board` prints list IDs
+
+# 4. Create the canonical labels on the active board (idempotent)
+python3 scripts/setup_labels.py
+
+# 5. Verify the install end-to-end
+python3 scripts/doctor.py
+#   exits 0 if all 10 checks pass; exit 9 (DOCTOR_FAIL) with details otherwise
+
+# 6. Copy agent templates into per-agent workspaces
+mkdir -p ~/.openclaw/workspace-{orchestrator,executor}
+cp -r references/agent-templates/orchestrator/. ~/.openclaw/workspace-orchestrator/
+cp -r references/agent-templates/executor/.     ~/.openclaw/workspace-executor/
+cp references/agent-templates/shared/MEMORY.md.template \
+   ~/.openclaw/workspace-orchestrator/MEMORY.md
+cp references/agent-templates/shared/MEMORY.md.template \
+   ~/.openclaw/workspace-executor/MEMORY.md
+# rename each *.template → drop the suffix; fill <MY_AGENT_ID> and <MY_LIST>
+
+# 7. Merge config snippets into the global OpenClaw config
+#    references/snippets/openclaw-config.snippet.json5 → ~/.openclaw/openclaw.json
+#    references/snippets/exec-approvals.snippet.json   → ~/.openclaw/exec-approvals.json
+
+# 8. Activate the heartbeat (the snippet sets `heartbeat.every: "30m"` already)
+openclaw gateway restart
+
+# 9. Send your first card from a chat with the orchestrator
+openclaw chat orchestrator      # or whichever channel you wired
+# Say: "Create a test card titled 'Hello Trello' in the executor list"
+# Expect: a CREATED:<id> line in the reply and the card visible in Trello within seconds
+```
+
+Full step-by-step with screenshots: [docs/walkthrough.md](docs/walkthrough.md). Detailed install: [references/install.md](references/install.md). Diagnose problems: `python3 scripts/doctor.py --verbose` or [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Canonical workflow
 
@@ -267,3 +332,4 @@ Both stay below the OpenClaw recommended 50 lines.
 | 6 | Low rate-limit budget |
 | 7 | State drift (pipeline `--expect` mismatch) |
 | 8 | Skill audit failure |
+| 9 | Doctor check failure (`scripts/doctor.py`) |

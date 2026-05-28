@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.4] — 2026-05-28
+
+### Added
+- `scripts/doctor.py` — end-to-end setup verification with 10 numbered checks (`python_version`, `openclaw_cli`, `git_cli`, `env_credentials`, `config_present`, `trello_auth`, `board_reachable`, `canonical_labels`, `workspace_dirs`, `heartbeat_config`). Exit 0 on full pass; exit 9 (`DOCTOR_FAIL`) on any failure. `--verbose` and `--dry` modes.
+- `tests/test_doctor.py` — pure-helper coverage for the JSON5 parser, agent lookup, missing-label diff, and heartbeat detection.
+- `tests/smoke.sh` adds a dry-run entry for `doctor.py`.
+- New exit code `9` `DOCTOR_FAIL` (documented in `SKILL.md` and `README.md`).
+
+### Changed
+- `SKILL.md` opens with **Prerequisites** and a 9-step numbered **Quickstart** (install → env vars → init+edit config → `setup_labels.py` → `doctor.py` → workspace templates → snippets → activate heartbeat → first card) **before** the existing Rules / CLI reference. The frontmatter now declares `git` and `openclaw` in addition to `python3` under `metadata.openclaw.requires.bins`, adds an `emoji`, and quotes the `description` per the OpenClaw skill convention.
+- `docs/quickstart.md` aligned with the new SKILL.md Quickstart and adds the `doctor.py` verification step.
+- `references/install.md`: a new section warns that the active board must exist before any script runs, and adds `doctor.py` as the verification step.
+- `docs/troubleshooting.md`: a new **Doctor checks** section maps each of the 10 checks to its cause and a copy-pasteable fix.
+- `README.md` Quickstart adds `doctor.py`; the "What's in the box" table lists it; the exit-codes table adds `9`.
+- `scripts/trello_task.py` exports `EXIT_DOCTOR_FAIL = 9`.
+- `package.json` bumped to `3.0.4`.
+
+### Notes
+- No behaviour change to any existing script. `doctor.py` is purely read-only diagnostic.
+
 ## [3.0.3] — 2026-05-28
 
 ### Removed

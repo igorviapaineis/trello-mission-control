@@ -4,7 +4,7 @@ Get a working 2-agent setup in 5 minutes.
 
 ```bash
 # 1. Install the skill (git source; will move to `clawhub:igorviapaineis/trello-mission-control` once published)
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.3
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.0.4
 
 # 2. Set Trello credentials
 export TRELLO_API_KEY='...'      # https://trello.com/power-ups/admin
@@ -20,8 +20,12 @@ cd ~/.openclaw/skills/trello-mission-control
 python3 scripts/trello_task.py init
 # fill board_id, archive_board_id, templates_list_id, lists.* in the file
 
-# 5. Create canonical labels (idempotent)
+# 5. Create canonical labels (idempotent — board must already exist)
 python3 scripts/setup_labels.py
+
+# 5a. Verify setup end-to-end
+python3 scripts/doctor.py
+# exits 0 if everything is wired up; non-zero with explanation otherwise
 
 # 6. Create workspaces for both agents
 mkdir -p ~/.openclaw/workspace-{orchestrator,executor}

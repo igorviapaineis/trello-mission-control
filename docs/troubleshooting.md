@@ -1,5 +1,62 @@
 # Troubleshooting
 
+## Doctor checks
+
+`python3 scripts/doctor.py` runs 10 numbered checks. Each prints `CHECK <n>:<name> OK|WARN|FAIL <message>`. A `FAIL` on any check sets the exit code to 9 (`DOCTOR_FAIL`). Recipes for each failure:
+
+### `CHECK 1: python_version FAIL`
+Cause: Python older than 3.10.
+Fix: install Python 3.10+ (`brew install python@3.12` on macOS, `apt install python3.12` on Ubuntu, or use `pyenv`).
+
+### `CHECK 2: openclaw_cli FAIL`
+Cause: `openclaw` CLI not on `PATH`.
+Fix: install OpenClaw, then `which openclaw` should return a path. If you used a custom install location, add it to `PATH` in your shell rc.
+
+### `CHECK 3: git_cli FAIL`
+Cause: `git` not on `PATH`.
+Fix: `brew install git` / `apt install git`.
+
+### `CHECK 4: env_credentials FAIL`
+Cause: `TRELLO_API_KEY` and/or `TRELLO_TOKEN` not exported in the current shell.
+Fix:
+```bash
+export TRELLO_API_KEY='...'
+export TRELLO_TOKEN='...'
+```
+Persist in `~/.zshrc` or `~/.bashrc` so they survive new shells.
+
+### `CHECK 5: config_present FAIL`
+Cause: `trello_config.json` not found or missing required keys (`board_id`, `archive_board_id`, `lists`).
+Fix:
+```bash
+python3 scripts/trello_task.py init
+$EDITOR trello_config.json    # fill the IDs
+```
+
+### `CHECK 6: trello_auth FAIL`
+Cause: API rejected your credentials (HTTP 401 or 403).
+Fix: regenerate the token at <https://trello.com/power-ups/admin>. Confirm the token grants `read` and `write`.
+
+### `CHECK 7: board_reachable FAIL`
+Cause: the `board_id` in your config does not correspond to a board you have access to (HTTP 404).
+Fix: verify the ID. Open the board in the browser; the ID is in the URL: `https://trello.com/b/<board_id>/<slug>`.
+
+### `CHECK 8: canonical_labels WARN`
+Cause: one or more canonical labels are missing on the board.
+Fix:
+```bash
+python3 scripts/setup_labels.py
+```
+This is a `WARN` not a `FAIL` — the rest of the system still works, but `claim-*` operations need the labels to exist.
+
+### `CHECK 9: workspace_dirs FAIL`
+Cause: `~/.openclaw/workspace-orchestrator/AGENTS.md` and/or `workspace-executor/AGENTS.md` are missing.
+Fix: copy and rename the templates (Quickstart step 6 in `SKILL.md`). If only the `.template` files exist (WARN), drop the suffix and fill the placeholders.
+
+### `CHECK 10: heartbeat_config FAIL`
+Cause: `~/.openclaw/openclaw.json` is missing, unparseable, or does not register `trello-mission-control` on the agents with a non-zero `heartbeat.every`.
+Fix: merge `references/snippets/openclaw-config.snippet.json5` into `~/.openclaw/openclaw.json`, then `openclaw gateway restart`.
+
 ## Install
 
 ### `openclaw plugins install ...` errors with `package.json missing openclaw.extensions`
