@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+    tags: ["v*"]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Syntax check
+        run: python3 -m py_compile scripts/*.py
+
+      - name: JSON validate
+        run: |
+          python3 -c "
+          import json, sys
+          paths = [
+            'openclaw.plugin.json',
+            'package.json',
+            'references/example-config.json',
+            'references/snippets/exec-approvals.snippet.json',
+            'references/snippets/butler-stale.snippet.json',
+          ]
+          for p in paths:
+            try:
+              json.load(open(p))
+              print(f'ok {p}')
+            except Exception as e:
+              print(f'FAIL {p}: {e}', file=sys.stderr)
+              sys.exit(1)
+          "
+
+      - name: Unit tests
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Smoke (CLI dry-runs)
+        run: bash tests/smoke.sh
