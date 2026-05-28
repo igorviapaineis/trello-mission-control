@@ -60,6 +60,50 @@ sequenceDiagram
     E->>T: done cardId (idList → done, dueComplete=true)
 ```
 
+## Sequence: multi-agent pipeline (JARVIS → VISION → Friday → Sia)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant O as Orchestrator
+    participant T as Trello
+    participant J as JARVIS
+    participant V as VISION
+    participant F as Friday
+    participant S as Sia
+
+    User->>O: "Build /api/login with JWT"
+    O->>T: create card in `inbox` (desc, meta, checklist, revisao)
+
+    Note over J,T: JARVIS heartbeat (research stage)
+    J->>T: get jarvis
+    T-->>J: card list
+    J->>T: claim cardId jarvis
+    J->>T: research, comment --tag note
+    J->>T: next cardId --expect jarvis  → VISION
+
+    Note over V,T: VISION heartbeat (design stage)
+    V->>T: get vision; claim; design output; comment done
+    V->>T: next cardId --expect vision  → Friday
+
+    Note over F,T: Friday heartbeat (build stage)
+    F->>T: get friday; claim; implement
+    F->>T: update_card_complete (desc, attach, done comment)
+    F->>T: next cardId --expect friday  → Sia
+
+    Note over S,T: Sia heartbeat (review stage)
+    S->>T: get sia; claim; QA
+    alt accept
+        S->>T: done cardId (idList → done, dueComplete=true)
+    else reject
+        S->>T: label qa-failed
+        S->>T: prev cardId --expect sia  → Friday (rework)
+    end
+```
+
+The single-executor diagram (above) shows the protocol primitives; this one shows the same primitives chained across stages.
+
 ## Layers
 
 ```

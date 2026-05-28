@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.6] — 2026-05-28
+
+### Changed
+- `docs/troubleshooting.md` "Doctor checks" section: each `CHECK N` entry now has a four-block layout — **Symptom** (literal `doctor.py` output), **Cause**, **Fix** (copy-pasteable shell), **Verify** (re-run command + expected output). Added a "healthy doctor output" preview at the top of the section so users know what success looks like.
+- `references/board-template.md` adds Section 7 "Real-world example: pipeline of named agents" with a concrete JARVIS/VISION/Friday/Sia layout, ASCII art board, full `trello_config.json`, derived `claim-*` labels, `openclaw.json` agents block, pipeline flow narrative, and a "one token per agent" note. The previous "Going beyond 2 agents" renumbers to Section 8 ("Going beyond 4 agents").
+- `docs/architecture.md` adds a second Mermaid sequence diagram for the multi-agent pipeline (JARVIS → VISION → Friday → Sia, with QA reject branch). The single-executor flow remains the primary intro.
+- README, `docs/quickstart.md`, `references/install.md` bump `@v3.0.5` → `@v3.0.6`.
+- `package.json` bumped to 3.0.6.
+
+### Notes
+- No script changes. No test changes. No behavior change.
+- Triggered by a second self-review pass via `openclaw-skill-creator` flagging that troubleshooting was diagnostic-only (no "Verify" step) and that `board-template.md` only documented the minimum two-list layout.
+
 ## [3.0.5] — 2026-05-28
 
 ### Changed

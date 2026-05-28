@@ -79,6 +79,88 @@ python3 scripts/digest.py
 
 If both run without errors, the board is wired correctly.
 
-## Going beyond 2 agents
+## 7. Real-world example: pipeline of named agents
+
+The default template uses a single `executor` list because that is the minimum that exercises the protocol. In practice, most setups fan out to multiple named agents — each owning one stage of the pipeline.
+
+Concrete example with four agents named **JARVIS** (research), **VISION** (design), **Friday** (build), and **Sia** (review):
+
+### Board layout
+
+```
+┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────┬─────────────┐
+│  inbox   │  JARVIS  │  VISION  │  Friday  │   Sia    │   done   │ _templates  │
+├──────────┼──────────┼──────────┼──────────┼──────────┼──────────┼─────────────┤
+│ #312 raw │ #309     │ #305 wip │ #299     │ #287     │ #281     │ tpl-bug     │
+│ #311 raw │ urgente  │ claim-V  │ claim-F  │ revisao  │ done     │ tpl-feat    │
+│ #310 raw │ claim-J  │          │          │ claim-S  │ done     │ tpl-deploy  │
+└──────────┴──────────┴──────────┴──────────┴──────────┴──────────┴─────────────┘
+   user      research    design     build      review    archive    pre-built
+   drops     grabs       handoff    handoff    QA pass   target     work cards
+   here      from        from J     from V     from F    of done
+            inbox
+```
+
+### `trello_config.json`
+
+```json
+{
+  "board_id": "abc1234567890abcdef",
+  "archive_board_id": "987zyx6543210fedcba",
+  "templates_list_id": "list_templates_id",
+  "lists": {
+    "inbox":   "list_inbox_id",
+    "jarvis":  "list_jarvis_id",
+    "vision":  "list_vision_id",
+    "friday":  "list_friday_id",
+    "sia":     "list_sia_id",
+    "done":    "list_done_id"
+  },
+  "agents": {
+    "jarvis": { "role": "executor", "list_id": "list_jarvis_id" },
+    "vision": { "role": "executor", "list_id": "list_vision_id" },
+    "friday": { "role": "executor", "list_id": "list_friday_id" },
+    "sia":    { "role": "executor", "list_id": "list_sia_id" }
+  }
+}
+```
+
+### Labels created by `setup_labels.py`
+
+For each agent in `config.agents`, `setup_labels.py` derives one `claim-<agent>` label automatically:
+
+- `claim-jarvis`, `claim-vision`, `claim-friday`, `claim-sia`
+
+Plus the global ones: `urgente`, `bloqueado`, `revisao`, `pediu`, `stale`, `qa-failed`.
+
+### `~/.openclaw/openclaw.json` `agents.list[]`
+
+```json5
+{
+  agents: {
+    list: [
+      { id: "orchestrator", skills: ["trello-mission-control"], heartbeat: { every: "30m" } },
+      { id: "jarvis",       skills: ["trello-mission-control"], heartbeat: { every: "30m" } },
+      { id: "vision",       skills: ["trello-mission-control"], heartbeat: { every: "30m" } },
+      { id: "friday",       skills: ["trello-mission-control"], heartbeat: { every: "30m" } },
+      { id: "sia",          skills: ["trello-mission-control"], heartbeat: { every: "30m" } },
+    ],
+  },
+}
+```
+
+Each agent's workspace `HEARTBEAT.md` reads its own list (`<MY_LIST>` placeholder filled with the matching list name).
+
+### Pipeline flow
+
+The orchestrator drops cards in `inbox`. JARVIS heartbeat picks them up (`get jarvis`), `claim jarvis`, does research, then `next --expect jarvis` advances to VISION. VISION repeats the cycle. The card walks `inbox → jarvis → vision → friday → sia → done`. Sia is the final QA gate before `done`.
+
+If a stage rejects (label `qa-failed`), the card moves back one step with `prev`. The `claim-<agent>` label is automatic; another agent's heartbeat skips cards already claimed.
+
+### Why each agent gets its own token
+
+Trello rate-limits **per token** at 100 req/10 s. Five agents sharing one token would race against the same budget. Issue one token per agent (re-login as the same Trello user multiple times in incognito tabs works for personal use; for team setups, use multiple Trello users).
+
+## 8. Going beyond 4 agents
 
 Add entries to `config.agents` and rerun `setup_labels.py` — it creates the new `claim-<agent>` labels. Then add an `agents.list[]` entry in `~/.openclaw/openclaw.json` (see snippet). Each agent should authenticate with its own token to keep rate-limit headroom proportional.

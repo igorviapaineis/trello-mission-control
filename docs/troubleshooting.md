@@ -2,60 +2,285 @@
 
 ## Doctor checks
 
-`python3 scripts/doctor.py` runs 10 numbered checks. Each prints `CHECK <n>:<name> OK|WARN|FAIL <message>`. A `FAIL` on any check sets the exit code to 9 (`DOCTOR_FAIL`). Recipes for each failure:
+`python3 scripts/doctor.py` runs 10 numbered checks. Each prints `CHECK <n>:<name> OK|WARN|FAIL <message>`. A `FAIL` on any check sets the exit code to 9 (`DOCTOR_FAIL`).
+
+When everything is wired correctly, `doctor.py` prints:
+
+```
+CHECK  1:python_version           OK   3.12.5
+CHECK  2:openclaw_cli             OK   /usr/local/bin/openclaw
+CHECK  3:git_cli                  OK   /usr/bin/git
+CHECK  4:env_credentials          OK   2 set
+CHECK  5:config_present           OK   board_id=abc1234..., 4 lists
+CHECK  6:trello_auth              OK   @your-username
+CHECK  7:board_reachable          OK   "Mission Control" (open)
+CHECK  8:canonical_labels         OK   11 labels found
+CHECK  9:workspace_dirs           OK   orchestrator, executor
+CHECK 10:heartbeat_config         OK   2 agents with skill, heartbeat=30m
+
+doctor: 10 OK / 0 WARN / 0 FAIL
+```
+
+If your output diverges, look up the failed `CHECK N` below.
 
 ### `CHECK 1: python_version FAIL`
-Cause: Python older than 3.10.
-Fix: install Python 3.10+ (`brew install python@3.12` on macOS, `apt install python3.12` on Ubuntu, or use `pyenv`).
+
+**Symptom**
+```
+CHECK  1:python_version           FAIL need >=3.10, found 3.9.x
+```
+
+**Cause**
+Python older than 3.10.
+
+**Fix**
+```bash
+# macOS
+brew install python@3.12
+# Ubuntu/Debian
+apt install python3.12
+# or use pyenv:
+pyenv install 3.12 && pyenv shell 3.12
+```
+
+**Verify**
+```bash
+python3 --version
+# Expected: Python 3.10.x or newer
+python3 scripts/doctor.py 2>&1 | grep "CHECK  1"
+# Expected: CHECK  1:python_version           OK   3.x.x
+```
 
 ### `CHECK 2: openclaw_cli FAIL`
-Cause: `openclaw` CLI not on `PATH`.
-Fix: install OpenClaw, then `which openclaw` should return a path. If you used a custom install location, add it to `PATH` in your shell rc.
+
+**Symptom**
+```
+CHECK  2:openclaw_cli             FAIL `openclaw` not on PATH
+```
+
+**Cause**
+`openclaw` CLI not on `PATH`.
+
+**Fix**
+Install OpenClaw per its docs. If installed but not in `PATH`, add the install location to your shell rc:
+```bash
+echo 'export PATH="$HOME/.openclaw/bin:$PATH"' >> ~/.zshrc
+exec $SHELL -l
+```
+
+**Verify**
+```bash
+which openclaw
+# Expected: a path like /usr/local/bin/openclaw
+python3 scripts/doctor.py 2>&1 | grep "CHECK  2"
+# Expected: CHECK  2:openclaw_cli             OK   <path>
+```
 
 ### `CHECK 3: git_cli FAIL`
-Cause: `git` not on `PATH`.
-Fix: `brew install git` / `apt install git`.
+
+**Symptom**
+```
+CHECK  3:git_cli                  FAIL `git` not on PATH
+```
+
+**Cause**
+`git` not on `PATH`.
+
+**Fix**
+```bash
+# macOS
+brew install git
+# Ubuntu/Debian
+apt install git
+```
+
+**Verify**
+```bash
+git --version
+# Expected: git version 2.x.x
+python3 scripts/doctor.py 2>&1 | grep "CHECK  3"
+# Expected: CHECK  3:git_cli                  OK   <path>
+```
 
 ### `CHECK 4: env_credentials FAIL`
-Cause: `TRELLO_API_KEY` and/or `TRELLO_TOKEN` not exported in the current shell.
-Fix:
-```bash
-export TRELLO_API_KEY='...'
-export TRELLO_TOKEN='...'
+
+**Symptom**
 ```
-Persist in `~/.zshrc` or `~/.bashrc` so they survive new shells.
+CHECK  4:env_credentials          FAIL missing: TRELLO_API_KEY,TRELLO_TOKEN
+```
+
+**Cause**
+`TRELLO_API_KEY` and/or `TRELLO_TOKEN` not exported in the current shell.
+
+**Fix**
+```bash
+export TRELLO_API_KEY='<paste your key here>'
+export TRELLO_TOKEN='<paste your token here>'
+# persist in ~/.zshrc or ~/.bashrc so they survive new shells
+```
+
+**Verify**
+```bash
+echo "key=${TRELLO_API_KEY:0:6}... token=${TRELLO_TOKEN:0:6}..."
+# Expected: both fields non-empty
+python3 scripts/doctor.py 2>&1 | grep "CHECK  4"
+# Expected: CHECK  4:env_credentials          OK   2 set
+```
 
 ### `CHECK 5: config_present FAIL`
-Cause: `trello_config.json` not found or missing required keys (`board_id`, `archive_board_id`, `lists`).
-Fix:
+
+**Symptom**
+```
+CHECK  5:config_present           FAIL trello_config.json not found
+```
+or
+```
+CHECK  5:config_present           FAIL missing key: board_id
+```
+
+**Cause**
+`trello_config.json` not found or missing required keys (`board_id`, `archive_board_id`, `lists`).
+
+**Fix**
 ```bash
 python3 scripts/trello_task.py init
-$EDITOR trello_config.json    # fill the IDs
+$EDITOR trello_config.json    # fill board_id, archive_board_id, lists.*
+```
+Or set `TRELLO_CONFIG=/abs/path/to/trello_config.json` if your config lives elsewhere.
+
+**Verify**
+```bash
+python3 -c "import json; c = json.load(open('trello_config.json')); print('keys:', sorted(c))"
+# Expected: keys: ['agents', 'archive_board_id', 'board_id', 'labels', 'lists', ...]
+python3 scripts/doctor.py 2>&1 | grep "CHECK  5"
+# Expected: CHECK  5:config_present           OK   board_id=..., N lists
 ```
 
 ### `CHECK 6: trello_auth FAIL`
-Cause: API rejected your credentials (HTTP 401 or 403).
-Fix: regenerate the token at <https://trello.com/power-ups/admin>. Confirm the token grants `read` and `write`.
+
+**Symptom**
+```
+CHECK  6:trello_auth              FAIL HTTP 401: invalid credentials
+```
+
+**Cause**
+API rejected your credentials (HTTP 401 or 403).
+
+**Fix**
+Regenerate the token at <https://trello.com/power-ups/admin>. Confirm the token grants `read` and `write`. Re-export with the new value.
+
+**Verify**
+```bash
+curl -s "https://api.trello.com/1/members/me?key=${TRELLO_API_KEY}&token=${TRELLO_TOKEN}" | python3 -c "import json,sys; d=json.load(sys.stdin); print('user:', d.get('username'))"
+# Expected: user: <your-trello-username>
+python3 scripts/doctor.py 2>&1 | grep "CHECK  6"
+# Expected: CHECK  6:trello_auth              OK   @<your-username>
+```
 
 ### `CHECK 7: board_reachable FAIL`
-Cause: the `board_id` in your config does not correspond to a board you have access to (HTTP 404).
-Fix: verify the ID. Open the board in the browser; the ID is in the URL: `https://trello.com/b/<board_id>/<slug>`.
+
+**Symptom**
+```
+CHECK  7:board_reachable          FAIL HTTP 404 for board_id=<id>
+```
+
+**Cause**
+The `board_id` in your config does not correspond to a board you have access to.
+
+**Fix**
+Open the active board in the browser. The ID is in the URL: `https://trello.com/b/<board_id>/<slug>`. Copy `<board_id>` into `trello_config.json` → `board_id`.
+
+**Verify**
+```bash
+python3 scripts/trello_task.py board
+# Expected: list of your board's lists with IDs
+python3 scripts/doctor.py 2>&1 | grep "CHECK  7"
+# Expected: CHECK  7:board_reachable          OK   "<board name>"
+```
 
 ### `CHECK 8: canonical_labels WARN`
-Cause: one or more canonical labels are missing on the board.
-Fix:
+
+**Symptom**
+```
+CHECK  8:canonical_labels         WARN missing 3 of 11 labels
+```
+
+**Cause**
+One or more canonical labels are missing on the board.
+
+**Fix**
 ```bash
 python3 scripts/setup_labels.py
 ```
+
+**Verify**
+```bash
+python3 scripts/doctor.py 2>&1 | grep "CHECK  8"
+# Expected: CHECK  8:canonical_labels         OK   N labels found
+```
+
 This is a `WARN` not a `FAIL` — the rest of the system still works, but `claim-*` operations need the labels to exist.
 
 ### `CHECK 9: workspace_dirs FAIL`
-Cause: `~/.openclaw/workspace-orchestrator/AGENTS.md` and/or `workspace-executor/AGENTS.md` are missing.
-Fix: copy and rename the templates (Quickstart step 6 in `SKILL.md`). If only the `.template` files exist (WARN), drop the suffix and fill the placeholders.
+
+**Symptom**
+```
+CHECK  9:workspace_dirs           FAIL missing: workspace-orchestrator/AGENTS.md
+```
+
+**Cause**
+`~/.openclaw/workspace-orchestrator/AGENTS.md` and/or `workspace-executor/AGENTS.md` are missing.
+
+**Fix**
+Copy and rename the templates (Quickstart step 6 in `SKILL.md`):
+```bash
+SKILL_DIR=~/.openclaw/skills/trello-mission-control
+mkdir -p ~/.openclaw/workspace-{orchestrator,executor}
+cp -r $SKILL_DIR/references/agent-templates/orchestrator/. ~/.openclaw/workspace-orchestrator/
+cp -r $SKILL_DIR/references/agent-templates/executor/.     ~/.openclaw/workspace-executor/
+for d in orchestrator executor; do
+  cd ~/.openclaw/workspace-$d
+  for f in *.template; do mv "$f" "${f%.template}"; done
+done
+# then fill <MY_AGENT_ID> and <MY_LIST> in each file
+```
+
+**Verify**
+```bash
+ls ~/.openclaw/workspace-orchestrator/AGENTS.md ~/.openclaw/workspace-executor/AGENTS.md
+# Expected: both paths exist (no errors)
+python3 scripts/doctor.py 2>&1 | grep "CHECK  9"
+# Expected: CHECK  9:workspace_dirs           OK   orchestrator, executor
+```
 
 ### `CHECK 10: heartbeat_config FAIL`
-Cause: `~/.openclaw/openclaw.json` is missing, unparseable, or does not register `trello-mission-control` on the agents with a non-zero `heartbeat.every`.
-Fix: merge `references/snippets/openclaw-config.snippet.json5` into `~/.openclaw/openclaw.json`, then `openclaw gateway restart`.
+
+**Symptom**
+```
+CHECK 10:heartbeat_config         FAIL trello-mission-control not in any agent's skills
+```
+or
+```
+CHECK 10:heartbeat_config         FAIL heartbeat.every is 0m
+```
+
+**Cause**
+`~/.openclaw/openclaw.json` is missing, unparseable, or does not register `trello-mission-control` on the agents with a non-zero `heartbeat.every`.
+
+**Fix**
+Merge `references/snippets/openclaw-config.snippet.json5` into `~/.openclaw/openclaw.json`, then restart the gateway:
+```bash
+$EDITOR ~/.openclaw/openclaw.json    # paste the snippet
+openclaw gateway restart
+```
+
+**Verify**
+```bash
+python3 -c "import json,os; cfg=json.load(open(os.path.expanduser('~/.openclaw/openclaw.json'))); agents=cfg.get('agents',{}).get('list',[]); print([a['id'] for a in agents if 'trello-mission-control' in a.get('skills', [])])"
+# Expected: list of agent IDs with the skill registered
+python3 scripts/doctor.py 2>&1 | grep "CHECK 10"
+# Expected: CHECK 10:heartbeat_config         OK   N agents with skill, heartbeat=30m
+```
 
 ## Install
 
