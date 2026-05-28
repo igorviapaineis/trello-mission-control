@@ -22,22 +22,22 @@ Comments         → brief status updates, all tagged with [ISO | @agent | tag] 
 The executor's `update_card_complete.py` script writes this layout. The orchestrator's card-creation flow should write at least Objetivo + meta block.
 
 ```markdown
-## Objetivo
+## Goal
 Short briefing — what the user asked for and what acceptance looks like.
 
-## Resultado
+## Result
 Filled by the executor at completion. What was actually done.
 
-## Mudanças
+## Changes
 - path/to/file.ts:42 — short description
 - path/to/other.py:100 — short description
 
-## Métricas
-- Tempo: 25min
-- Arquivos modificados: 3
-- Testes: 12 pass, 0 fail
+## Metrics
+- Time: 25min
+- Files changed: 3
+- Tests: 12 pass, 0 fail
 
-## Notas
+## Notes
 Gotchas, decisions, things future you should know.
 
 <!--meta
@@ -78,11 +78,11 @@ All agent-generated comments use the tag prefix:
 
 Tags: `claim` `done` `blocked` `handoff` `note`.
 
-Comments are brief by rule. Long content goes into the description (`Resultado` / `Mudanças` / `Notas`) or attachments. The audit log (`activity --filter`) becomes useful precisely because comments are tagged and short.
+Comments are brief by rule. Long content goes into the description (`Result` / `Changes` / `Notes`) or attachments. The audit log (`activity --filter`) becomes useful precisely because comments are tagged and short.
 
 ## Checklist
 
-Default name: `Resultado`. The executor either ticks items the orchestrator created or appends + ticks new ones. Trello Free allows unlimited checklist items per card.
+Default name: `Result`. The executor either ticks items the orchestrator created or appends + ticks new ones. Trello Free allows unlimited checklist items per card.
 
 ## Attachments
 

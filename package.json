@@ -1,6 +1,6 @@
 {
   "name": "trello-mission-control",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "OpenClaw plugin for multi-agent task orchestration via Trello.",
   "main": "index.js",
   "type": "module",

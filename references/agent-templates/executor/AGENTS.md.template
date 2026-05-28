@@ -60,12 +60,12 @@ Always call `update_card_complete.py` at the end. This is non-negotiable — it 
 
 ```bash
 python3 ~/.openclaw/skills/trello-mission-control/scripts/update_card_complete.py <CARD_ID> \
-  --resultado "what was done in one paragraph" \
+  --result "what was done in one paragraph" \
   --changes "src/auth.ts:42 — fixed timingSafeEqual" \
   --changes "tests/auth.test.ts:118 — added regression" \
-  --metric "Tempo: 25min" \
-  --metric "Testes: 18/18" \
-  --notes "Bug existia desde 2025-08; commit antigo deixou == em vez de timingSafeEqual." \
+  --metric "Time: 25min" \
+  --metric "Tests: 18/18" \
+  --notes "Bug present since 2025-08; old commit left == instead of timingSafeEqual." \
   --check-step "Reproduce" --check-step "Locate" --check-step "Fix" --check-step "Test" \
   --attach /tmp/diff.patch \
   --attach /tmp/test-output.log \

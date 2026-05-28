@@ -2,6 +2,25 @@
 
 OpenClaw plugin for **multi-agent task orchestration via Trello**. The user talks to one orchestrator agent; the orchestrator creates Trello cards; executor agents pick them up from their list on heartbeat and execute. Communication between agents is exclusively through cards — never internal messages.
 
+[![ci](https://github.com/igorviapaineis/trello-mission-control/actions/workflows/ci.yml/badge.svg)](https://github.com/igorviapaineis/trello-mission-control/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+## Quickstart
+
+```bash
+openclaw plugins install clawhub:igorviapaineis/trello-mission-control
+openclaw gateway restart
+export TRELLO_API_KEY='...' TRELLO_TOKEN='...'       # https://trello.com/power-ups/admin
+cd ~/.openclaw/skills/trello-mission-control
+python3 scripts/trello_task.py init                  # fill IDs in the generated config
+python3 scripts/setup_labels.py                      # create canonical labels
+python3 scripts/digest.py                            # smoke
+```
+
+Then copy `references/agent-templates/` into `~/.openclaw/workspace-<agent>/` for each agent, and merge `references/snippets/` into `~/.openclaw/openclaw.json` and `~/.openclaw/exec-approvals.json`.
+
+Full setup: [docs/quickstart.md](docs/quickstart.md) · architecture: [docs/architecture.md](docs/architecture.md) · worked example: [docs/walkthrough.md](docs/walkthrough.md) · troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md) · contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · security: [SECURITY.md](SECURITY.md).
+
 ## Why
 
 - **One source of truth.** Cards are the queue, the log, and the audit trail.

@@ -1,3 +1,11 @@
 trello_config.json
 __pycache__/
 *.pyc
+.venv/
+*.egg-info/
+node_modules/
+index.js
+tests/.tmp_*/
+tests/tests_tmp_*/
+*.tgz
+.DS_Store

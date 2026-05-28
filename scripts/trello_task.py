@@ -745,15 +745,16 @@ def cmd_search(query, config, creds, dry, label_id=None):
 
 
 def cmd_overdue(config, creds, dry, list_name=None):
+    if dry:
+        scope = f"list '{list_name}'" if list_name else "whole board"
+        print(f"DRY: Would check overdue cards on {scope}")
+        return
     params = {"filter": "open", "fields": "id,name,desc,labels,idList,due,members,dueComplete"}
     if list_name:
         list_id = resolve_list(list_name, config)
         cards = api("GET", f"/lists/{list_id}/cards", params, creds)
     else:
         cards = api("GET", f"/boards/{config['board_id']}/cards", params, creds)
-    if dry:
-        print(f"DRY: Would check overdue cards")
-        return
     overdue = []
     for c in cards:
         if c.get("due") and not c.get("dueComplete"):

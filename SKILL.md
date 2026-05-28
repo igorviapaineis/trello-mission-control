@@ -68,28 +68,28 @@ On finishing a card, the executor must update it with the maximum useful structu
 
 1. **Structured description** (markdown), overriding what was there:
    ```markdown
-   ## Objetivo
+   ## Goal
    <from original briefing>
 
-   ## Resultado
+   ## Result
    <what was done>
 
-   ## Mudanças
+   ## Changes
    - file1.ts:42 — <description>
    - file2.py:100 — <description>
 
-   ## Métricas
-   - Tempo: <min>
-   - Arquivos modificados: <n>
-   - Testes: <n pass, n fail>
+   ## Metrics
+   - Time: <min>
+   - Files changed: <n>
+   - Tests: <n pass, n fail>
 
-   ## Notas
+   ## Notes
    <gotchas, decisions>
 
    <!--meta { ... } -->
    ```
 
-2. **Checklist** — tick items as steps complete. Create a `Resultado` checklist if none exists.
+2. **Checklist** — tick items as steps complete. Create a `Result` checklist if none exists.
 
 3. **Attachments** (10 MB Trello Free cap per file):
    - `diff.patch` whenever code changed.
@@ -189,7 +189,7 @@ python3 {baseDir}/scripts/trello_task.py meta-get <id> priority
 
 ### Checklists
 ```bash
-python3 {baseDir}/scripts/trello_task.py checklist <id> create "Resultado"
+python3 {baseDir}/scripts/trello_task.py checklist <id> create "Result"
 python3 {baseDir}/scripts/trello_task.py checklist <id> add <cl_id> "Build"
 python3 {baseDir}/scripts/trello_task.py checklist <id> items <cl_id>
 python3 {baseDir}/scripts/trello_task.py checklist <id> check <item_id>

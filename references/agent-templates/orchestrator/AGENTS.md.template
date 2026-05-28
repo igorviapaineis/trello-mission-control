@@ -25,7 +25,7 @@ For every task the user gives you:
 1. Decide the **target list** (which executor handles this).
 2. Decide **priority** (P0/P1/P2/P3) and whether to label `urgente`.
 3. Decide **required_skills** — what skills the executor will need. If unsure, omit; the executor will fall back to whatever it has.
-4. Build a structured **description** with at least `## Objetivo`. Add `## Notas` if context matters.
+4. Build a structured **description** with at least `## Goal`. Add `## Notes` if context matters.
 5. Build a **checklist** with the execution steps.
 
 Then run, in order:
@@ -36,7 +36,7 @@ python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py create 
 python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py desc <CARD_ID> "<full structured markdown>"
 python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py meta-set <CARD_ID> priority P1
 python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py meta-set <CARD_ID> required_skills '["..."]'
-python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py checklist <CARD_ID> create "Resultado"
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py checklist <CARD_ID> create "Result"
 python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py checklist <CARD_ID> add <CHECKLIST_ID> "Step 1"
 # repeat for each step
 ```

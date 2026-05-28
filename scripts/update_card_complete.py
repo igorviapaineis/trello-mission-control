@@ -2,24 +2,26 @@
 """Update a Trello card with a structured completion summary.
 
 Implements the v3 "card hygiene" protocol: writes a structured description
-(Objetivo / Resultado / Mudanças / Métricas / Notas), updates the Resultado
-checklist (creating it if needed), attaches artifact files, and posts a brief
-done comment with the canonical provenance tag.
+(Goal / Result / Changes / Metrics / Notes), updates the Result checklist
+(creating it if needed), attaches artifact files, and posts a brief done
+comment with the canonical provenance tag.
 
 All long content lives in the description and attachments. Comments stay brief.
 
 Usage:
   python3 update_card_complete.py <card_id> \\
-    --resultado "what was done" \\
+    --result "what was done" \\
     [--changes "file:line — text" --changes "file:line — text" ...] \\
-    [--metric "Tempo: 25min" --metric "Testes: 12/12" ...] \\
+    [--metric "Time: 25min" --metric "Tests: 12/12" ...] \\
     [--notes "gotchas..."] \\
-    [--checklist-name "Resultado"] \\
+    [--checklist-name "Result"] \\
     [--check-step "Build" --check-step "Test" ...] \\
     [--attach /path/to/file ...] \\
     [--comment "1-liner"] \\
     [--agent <id>] \\
     [--dry]
+
+Backwards compatibility: the legacy flag `--resultado` is also accepted.
 """
 
 import sys
@@ -39,25 +41,43 @@ from trello_task import (
 )
 
 
+EN_SECTIONS = ["Goal", "Result", "Changes", "Metrics", "Notes"]
+
+# Map legacy Portuguese section names (older cards from before v3.0.1) to the
+# canonical English ones. parse_existing accepts both; render emits English only.
+PT_TO_EN = {
+    "Objetivo": "Goal",
+    "Resultado": "Result",
+    "Mudanças": "Changes",
+    "Métricas": "Metrics",
+    "Notas": "Notes",
+}
+
 SECTION_RE = re.compile(
-    r"^##\s+(Objetivo|Resultado|Mudanças|Métricas|Notas)\s*$",
+    r"^##\s+(Goal|Result|Changes|Metrics|Notes|Objetivo|Resultado|Mudanças|Métricas|Notas)\s*$",
     re.MULTILINE,
 )
 
 
 def parse_existing(desc):
-    """Split desc into ordered sections; preserve any text above first heading as 'Objetivo'."""
-    sections = {"Objetivo": "", "Resultado": "", "Mudanças": "", "Métricas": "", "Notas": ""}
+    """Split desc into ordered sections. Preserves text above the first heading as Goal.
+
+    Accepts both English section headers (Goal/Result/Changes/Metrics/Notes)
+    and the legacy Portuguese headers (Objetivo/Resultado/Mudanças/Métricas/Notas)
+    so cards written before v3.0.1 keep parsing.
+    """
+    sections = {name: "" for name in EN_SECTIONS}
     if not desc:
         return sections
     matches = list(SECTION_RE.finditer(desc))
     if not matches:
-        sections["Objetivo"] = desc.strip()
+        sections["Goal"] = desc.strip()
         return sections
     if matches[0].start() > 0:
-        sections["Objetivo"] = desc[: matches[0].start()].strip()
+        sections["Goal"] = desc[: matches[0].start()].strip()
     for i, m in enumerate(matches):
-        name = m.group(1)
+        raw = m.group(1)
+        name = PT_TO_EN.get(raw, raw)
         end = matches[i + 1].start() if i + 1 < len(matches) else len(desc)
         sections[name] = desc[m.end() : end].strip()
     return sections
@@ -65,7 +85,7 @@ def parse_existing(desc):
 
 def render(sections, meta):
     parts = []
-    for name in ["Objetivo", "Resultado", "Mudanças", "Métricas", "Notas"]:
+    for name in EN_SECTIONS:
         body = sections.get(name, "").strip()
         if body:
             parts.append(f"## {name}\n{body}")
@@ -77,11 +97,11 @@ def render(sections, meta):
 
 def parse_args(argv):
     flags = {
-        "resultado": None,
+        "result": None,
         "changes": [],
         "metrics": [],
         "notes": None,
-        "checklist_name": "Resultado",
+        "checklist_name": "Result",
         "check_steps": [],
         "attachments": [],
         "comment": None,
@@ -94,8 +114,8 @@ def parse_args(argv):
         a = argv[i]
         if a == "--dry":
             flags["dry"] = True
-        elif a == "--resultado" and i + 1 < len(argv):
-            flags["resultado"] = argv[i + 1]; i += 1
+        elif a in ("--result", "--resultado") and i + 1 < len(argv):
+            flags["result"] = argv[i + 1]; i += 1
         elif a == "--changes" and i + 1 < len(argv):
             flags["changes"].append(argv[i + 1]); i += 1
         elif a == "--metric" and i + 1 < len(argv):
@@ -164,14 +184,14 @@ def main():
     meta, human_desc = parse_meta_block(card.get("desc") or "")
     sections = parse_existing(human_desc)
 
-    if flags["resultado"]:
-        sections["Resultado"] = flags["resultado"]
+    if flags["result"]:
+        sections["Result"] = flags["result"]
     if flags["changes"]:
-        sections["Mudanças"] = "\n".join(f"- {c}" for c in flags["changes"])
+        sections["Changes"] = "\n".join(f"- {c}" for c in flags["changes"])
     if flags["metrics"]:
-        sections["Métricas"] = "\n".join(f"- {m}" for m in flags["metrics"])
+        sections["Metrics"] = "\n".join(f"- {m}" for m in flags["metrics"])
     if flags["notes"]:
-        sections["Notas"] = flags["notes"]
+        sections["Notes"] = flags["notes"]
 
     new_desc = render(sections, meta)
 
