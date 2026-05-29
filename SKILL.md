@@ -29,8 +29,8 @@ Before installing this skill make sure you have:
     3. Below the key, click **"Token"** → authorize → copy the long token string.
     The token does not expire by default; append `&expiration=30days` to the URL if you want rotation.
   - **Two boards already created** with the layout described in [`references/board-template.md`](references/board-template.md) (~5 min setup):
-    - Active board (e.g. `Mission Control`) with lists `inbox`, `executor`, `done`, `_templates`.
-    - Archive board (e.g. `Mission Control — Archive`), empty — `archive_old.py` populates it.
+    - Active board (e.g. `Mission Control`) with lists `inbox`, `executor`, `_templates` (no `done` list — status is the `done` label).
+    - Archive board (e.g. `Mission Control — Archive`), empty — `archive_old.py` sweeps `done`-labelled cards into it.
 - One OpenClaw workspace per agent (default: `orchestrator` and `executor`).
 
 If any of the above is missing, `scripts/doctor.py` (step 5 of the Quickstart) will tell you which.

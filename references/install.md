@@ -33,9 +33,9 @@ Best practice: one token per agent, never share. The per-token rate limit is `10
 
 **The active board must exist before you run any other step** — `setup_labels.py` writes to it, and `doctor.py` checks against it. The complete board prep walkthrough is in [`board-template.md`](board-template.md) — it covers list creation, finding board/list IDs via the `.json` URL trick, archive board setup, and seeding template cards. Five-minute summary:
 
-- Active board with lists `inbox`, `<executor list>`, `done`, `_templates`.
-- Archive board (empty — `archive_old.py` populates).
-- Run `python3 scripts/setup_labels.py` to create the canonical 8-label set.
+- Active board with lists `inbox`, `<executor list>`, `_templates` (no `done` list — completion is the `done` label, not a list move).
+- Archive board (empty — `archive_old.py` sweeps `done`-labelled cards into it).
+- Run `python3 scripts/setup_labels.py` to create the canonical label set (includes `done`).
 
 ## 3a. Verify your setup so far
 

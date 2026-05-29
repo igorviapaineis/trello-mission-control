@@ -2,7 +2,7 @@
 
 Concrete example: the user asks the orchestrator to add a `/api/login` JWT endpoint to a Next.js project. We trace what each agent does, the exact commands they run, and what the card looks like at each step.
 
-Assumptions: a working install per [quickstart](quickstart.md), two agents (`orchestrator` and `executor`), a board with lists `inbox`, `executor`, `done`, `_templates`.
+Assumptions: a working install per [quickstart](quickstart.md), two agents (`orchestrator` and `executor`), a board with lists `inbox`, `executor`, `_templates`. No `done` list — completion is the `done` label (single-owner default), and the card stays in its owner's column.
 
 ## 1. User → Orchestrator
 
@@ -60,7 +60,7 @@ python3 $S/trello_task.py get executor
 # CARD:abc123|Add /api/login with JWT|labels=urgente|...
 ```
 
-It picks the most urgent unclaimed card (this one) and claims it:
+It picks the most urgent unclaimed card (this one) and claims it (`get executor --for-agent executor` would also hide cards claimed by others or already `done`):
 
 ```bash
 python3 $S/trello_task.py claim abc123 executor
@@ -110,13 +110,14 @@ python3 $S/update_card_complete.py abc123 \
   --comment "12 tests pass, JWT signed with JWT_SECRET" \
   --agent executor
 
-python3 $S/trello_task.py done abc123
+python3 $S/trello_task.py done abc123 executor
+# DONE:abc123   (adds the `done` label + dueComplete, releases claim-executor; card stays in the executor column)
 ```
 
 ## 6. What the card looks like now
 
-- **List**: `done`.
-- **Labels**: `urgente` (still — not auto-removed).
+- **List**: `executor` (unchanged — the card never moves; status is a label).
+- **Labels**: `done` (added by completion), `urgente` (still — not auto-removed). `claim-executor` removed.
 - **Description**: 5 sections (Goal/Result/Changes/Metrics/Notes) plus the `<!--meta ... -->` block.
 - **Checklist `Result`**: 5/5 checked.
 - **Attachments**: `diff.patch`, `test.log`.
@@ -132,15 +133,15 @@ The next time the user opens an orchestrator session (or the orchestrator's 30-m
 DIGEST:
   pipeline:
     inbox: 0
-    executor: 0
-    done: 1
+    executor: 1 (1 done)
+  done: 1
   overdue: 0
   urgent: 0
   stale_7d: 0
   claimed: 0
 ```
 
-In 30 days, `archive_old.py` (which runs nightly) will move card `abc123` to the archive board's `archived-2026-06` list, keeping the active board lean.
+The card stays in the `executor` column with its `done` label. After 14 days of inactivity, the scheduled `archive_old.py --days 14` sweep moves card `abc123` to the archive board's `archived-2026-06` list, keeping the active board lean.
 
 ## 8. If something had gone wrong
 
