@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.2] — 2026-05-28
+
+### Fixed
+- `scripts/doctor.py::parse_openclaw_json` no longer destroys `https://...` URLs. The `//` line-comment stripper now uses a negative lookbehind (`(?<!:)//`) so URLs survive parsing. Before the fix, any `openclaw.json` containing a value like `"baseUrl": "https://api.minimax.io/anthropic"` would break parsing and CHECK 10 would FAIL with "openclaw.json could not be parsed".
+- `scripts/doctor.py` CHECK 9 (`workspace_dirs`) and CHECK 10 (`heartbeat_config`) no longer hardcode the agent ids `orchestrator`/`executor`. The doctor now derives the expected agents from `agents.list[]` in `~/.openclaw/openclaw.json`. CHECK 10 PASSes when at least one agent has `trello-mission-control` in its own or inherited skills and every such agent has a non-zero `heartbeat.every`. CHECK 9 PASSes when each `agents.list[].id` has a corresponding `~/.openclaw/workspace-<id>/AGENTS.md`. The previous hardcoded list survives only as a fallback when `openclaw.json` is absent or has no agents yet (fresh install). Setups with custom agent names (`jarvis`, `vision`, `friday`, `sia`, `nebula`, `ultron`, …) now report PASS instead of a false FAIL.
+
+### Added
+- `scripts/doctor.py::agents_with_skill(cfg, skill_name)` — returns `agents.list[]` entries whose own or inherited skills include the given name.
+- `scripts/doctor.py::agent_ids_for_workspaces(cfg, fallback)` — returns the agent ids whose workspace dirs the doctor expects on disk, with a fallback for fresh installs.
+- `tests/test_doctor.py` adds `TestParseOpenclawJsonPreservesUrls` (4 cases: `https://`, `http://localhost`, real inline `//` comment, line-start `//` comment), `TestAgentsWithSkill` (own skills, defaults inheritance, empty), `TestAgentIdsForWorkspaces` (reads from cfg, fallback, none).
+- `tests/test_bootstrap_board.py` adds `test_preserves_https_url_in_values` — the same regex bug shape applied to `bootstrap_board.py::auto_detect_agents`.
+
+### Changed
+- `scripts/bootstrap_board.py::auto_detect_agents` swaps its `(^|[^:])//[^\n]*` capture-group regex for `(?<!:)//[^\n]*`. Same effect, consistent with `doctor.py`, no capture group.
+- `docs/troubleshooting.md` CHECK 9 and CHECK 10 sections updated: the Symptom shows the dynamic `workspace-<agent-id>/AGENTS.md` format, the Cause explains that the agent list is derived from `agents.list[]`, the Fix uses placeholder agent ids, and the Verify command invokes `doctor.agents_with_skill` directly. The "healthy doctor output" panel at the top of the troubleshooting page mirrors the new CHECK 9/10 wording.
+- README, `docs/quickstart.md`, `references/install.md`, `SKILL.md` bump `@v3.1.1` → `@v3.1.2`.
+- `package.json` bumped to 3.1.2.
+
+### Notes
+- Pure bugfix patch. No new capability. No behavior change for setups already using `orchestrator`/`executor` agent ids.
+- Triggered by a tester running `doctor.py` against a real multi-agent setup (`sia`, `jarvis`, `vision`, `friday`, `nebula`, `ultron`) and getting `9/10 OK` with a false-negative CHECK 10 FAIL caused by both bugs at once.
+
 ## [3.1.1] — 2026-05-28
 
 ### Added

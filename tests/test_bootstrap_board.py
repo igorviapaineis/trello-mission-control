@@ -177,6 +177,22 @@ class TestAutoDetectAgents(unittest.TestCase):
             path = self._write(Path(td), '{"agents": {"list": []}}')
             self.assertEqual(bb.auto_detect_agents(path), [])
 
+    def test_preserves_https_url_in_values(self):
+        """The // comment stripper must not destroy `https://...` URLs (v3.1.2 bug)."""
+        from pathlib import Path
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            path = self._write(Path(td), '''{
+                "providers": { "minimax": { "baseUrl": "https://api.minimax.io/anthropic" } },
+                "agents": {
+                    "list": [
+                        {"id": "orchestrator"},
+                        {"id": "jarvis"}
+                    ]
+                }
+            }''')
+            self.assertEqual(bb.auto_detect_agents(path), ["jarvis"])
+
     def test_dedupes(self):
         from pathlib import Path
         import tempfile

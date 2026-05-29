@@ -28,6 +28,9 @@ PASS = "OK"
 FAIL = "FAIL"
 WARN = "WARN"
 
+# Fallback list used only when ~/.openclaw/openclaw.json is missing or has no
+# agents.list[] yet (fresh install). Once the snippet is merged, the real agent
+# ids are derived from cfg["agents"]["list"] via agent_ids_for_workspaces().
 DEFAULT_WORKSPACES = ["orchestrator", "executor"]
 DEFAULT_OPENCLAW_CONFIG = os.path.expanduser("~/.openclaw/openclaw.json")
 
@@ -62,8 +65,11 @@ def parse_openclaw_json(text):
     import json
     if not text:
         return None
-    # Remove // line comments
-    stripped = re.sub(r"//[^\n]*", "", text)
+    # Remove // line comments. Negative lookbehind prevents stripping the // inside
+    # URLs like `https://api.example.com` — the char immediately before `//` must
+    # not be `:`. Lookbehind does not consume the preceding char, so we use it
+    # directly in re.sub without a capture group.
+    stripped = re.sub(r"(?<!:)//[^\n]*", "", text)
     # Remove /* */ block comments
     stripped = re.sub(r"/\*.*?\*/", "", stripped, flags=re.DOTALL)
     # Remove trailing commas before } or ]
@@ -83,6 +89,42 @@ def find_agent_in_config(cfg, agent_id):
         if isinstance(entry, dict) and entry.get("id") == agent_id:
             return entry
     return None
+
+
+def agents_with_skill(cfg, skill_name):
+    """Return list of agents.list[] entries whose skills (own or inherited
+    from agents.defaults.skills) include `skill_name`.
+    """
+    if not isinstance(cfg, dict):
+        return []
+    agents_block = cfg.get("agents") or {}
+    defaults = agents_block.get("defaults") or {}
+    default_skills = set(defaults.get("skills") or [])
+    out = []
+    for entry in agents_block.get("list") or []:
+        if not isinstance(entry, dict):
+            continue
+        own = set(entry.get("skills") or [])
+        if skill_name in own or skill_name in default_skills:
+            out.append(entry)
+    return out
+
+
+def agent_ids_for_workspaces(cfg, fallback=None):
+    """Return agent ids whose workspace dirs we expect on disk.
+
+    Reads from cfg["agents"]["list"]. Falls back to `fallback` (typically
+    DEFAULT_WORKSPACES) when no agents are configured — preserves behaviour
+    for fresh installs that haven't merged the snippet yet.
+    """
+    if isinstance(cfg, dict):
+        ids = [
+            e["id"] for e in (cfg.get("agents") or {}).get("list") or []
+            if isinstance(e, dict) and isinstance(e.get("id"), str)
+        ]
+        if ids:
+            return ids
+    return list(fallback or [])
 
 
 def missing_labels(existing_names, canonical_names):
@@ -215,11 +257,27 @@ def check_canonical_labels(report, cfg):
         )
 
 
+def _load_openclaw_cfg_or_none():
+    """Read ~/.openclaw/openclaw.json. Returns parsed dict, or None on any failure."""
+    if not os.path.isfile(DEFAULT_OPENCLAW_CONFIG):
+        return None
+    try:
+        with open(DEFAULT_OPENCLAW_CONFIG) as f:
+            return parse_openclaw_json(f.read())
+    except OSError:
+        return None
+
+
 def check_workspaces(report):
     home = os.path.expanduser("~/.openclaw")
+    cfg = _load_openclaw_cfg_or_none()
+    expected = agent_ids_for_workspaces(cfg, DEFAULT_WORKSPACES)
+    if not expected:
+        report.add(9, "workspace_dirs", WARN, "no agents in openclaw.json and no fallback")
+        return
     missing = []
     placeholders = []
-    for agent in DEFAULT_WORKSPACES:
+    for agent in expected:
         workspace = os.path.join(home, f"workspace-{agent}")
         agents_md = os.path.join(workspace, "AGENTS.md")
         agents_template = agents_md + ".template"
@@ -234,7 +292,7 @@ def check_workspaces(report):
             9,
             "workspace_dirs",
             FAIL,
-            f"missing: {','.join(missing)}",
+            f"missing: {','.join('workspace-' + m + '/AGENTS.md' for m in missing)}",
             detail="See Quickstart step 6 in SKILL.md.",
         )
         return
@@ -247,7 +305,7 @@ def check_workspaces(report):
             detail="Drop .template suffix and fill placeholders.",
         )
         return
-    report.add(9, "workspace_dirs", PASS, f"{len(DEFAULT_WORKSPACES)} workspaces ready")
+    report.add(9, "workspace_dirs", PASS, f"{len(expected)} workspaces ready ({', '.join(expected)})")
 
 
 def check_heartbeat_config(report):
@@ -267,17 +325,22 @@ def check_heartbeat_config(report):
         report.add(10, "heartbeat_config", FAIL, "openclaw.json could not be parsed")
         return
     defaults = (cfg.get("agents") or {}).get("defaults") or {}
+    qualifying = agents_with_skill(cfg, "trello-mission-control")
+    if not qualifying:
+        report.add(
+            10,
+            "heartbeat_config",
+            FAIL,
+            "no agent has trello-mission-control in skills",
+            detail="Add `trello-mission-control` to agents.defaults.skills or "
+                   "the per-agent skills list in ~/.openclaw/openclaw.json.",
+        )
+        return
     issues = []
-    for agent_id in DEFAULT_WORKSPACES:
-        entry = find_agent_in_config(cfg, agent_id)
-        if not entry:
-            issues.append(f"{agent_id}: no agents.list entry")
-            continue
-        skills = entry.get("skills") or defaults.get("skills") or []
-        if "trello-mission-control" not in skills:
-            issues.append(f"{agent_id}: skill not in allowlist")
+    for entry in qualifying:
+        aid = entry.get("id", "<unknown>")
         if not has_heartbeat(entry, defaults):
-            issues.append(f"{agent_id}: no heartbeat.every")
+            issues.append(f"{aid}: no heartbeat.every")
     if issues:
         report.add(
             10,
@@ -287,7 +350,12 @@ def check_heartbeat_config(report):
             detail="\n".join(issues),
         )
         return
-    report.add(10, "heartbeat_config", PASS, f"{len(DEFAULT_WORKSPACES)} agents configured")
+    report.add(
+        10,
+        "heartbeat_config",
+        PASS,
+        f"{len(qualifying)} agents with skill, heartbeat configured",
+    )
 
 
 # --- Main ---

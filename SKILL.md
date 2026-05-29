@@ -60,7 +60,7 @@ If any of the above is missing, `scripts/doctor.py` (step 5 of the Quickstart) w
 #    Prefer to set everything up manually? Follow references/board-template.md §1 onwards.
 
 # 1. Install the skill (git source until published to ClawHub)
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.1
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.2
 
 # 2. Export Trello credentials (every script reads them from the environment)
 export TRELLO_API_KEY='...'

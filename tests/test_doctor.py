@@ -98,6 +98,88 @@ class TestMissingLabels(unittest.TestCase):
         self.assertEqual(doctor.missing_labels([None, 1, "urgente"], self.canonical), ["bloqueado", "stale"])
 
 
+class TestParseOpenclawJsonPreservesUrls(unittest.TestCase):
+    """The // line-comment stripper used to also kill `https://...` URLs.
+
+    The fix is a negative lookbehind: only strip // when the preceding char
+    is not `:`. These cases pin that behaviour.
+    """
+
+    def test_https_value_preserved(self):
+        text = '{"baseUrl": "https://api.minimax.io/anthropic"}'
+        d = doctor.parse_openclaw_json(text)
+        self.assertEqual(d, {"baseUrl": "https://api.minimax.io/anthropic"})
+
+    def test_http_value_preserved(self):
+        text = '{"baseUrl": "http://localhost:8080/v1"}'
+        d = doctor.parse_openclaw_json(text)
+        self.assertEqual(d, {"baseUrl": "http://localhost:8080/v1"})
+
+    def test_real_inline_comment_still_stripped(self):
+        text = '{"a": 1} // tail comment\n'
+        d = doctor.parse_openclaw_json(text)
+        self.assertEqual(d, {"a": 1})
+
+    def test_line_start_comment_still_stripped(self):
+        text = '// top\n{"a": 1}\n'
+        d = doctor.parse_openclaw_json(text)
+        self.assertEqual(d, {"a": 1})
+
+
+class TestAgentsWithSkill(unittest.TestCase):
+    def test_own_skills(self):
+        cfg = {
+            "agents": {
+                "list": [
+                    {"id": "jarvis", "skills": ["trello-mission-control"]},
+                    {"id": "other", "skills": ["foo"]},
+                ],
+            },
+        }
+        ids = [e["id"] for e in doctor.agents_with_skill(cfg, "trello-mission-control")]
+        self.assertEqual(ids, ["jarvis"])
+
+    def test_defaults_inheritance(self):
+        cfg = {
+            "agents": {
+                "defaults": {"skills": ["trello-mission-control"]},
+                "list": [
+                    {"id": "sia"},
+                    {"id": "nebula"},
+                ],
+            },
+        }
+        ids = [e["id"] for e in doctor.agents_with_skill(cfg, "trello-mission-control")]
+        self.assertEqual(ids, ["sia", "nebula"])
+
+    def test_empty_or_none(self):
+        self.assertEqual(doctor.agents_with_skill(None, "x"), [])
+        self.assertEqual(doctor.agents_with_skill({}, "x"), [])
+        self.assertEqual(doctor.agents_with_skill({"agents": {"list": []}}, "x"), [])
+
+
+class TestAgentIdsForWorkspaces(unittest.TestCase):
+    def test_reads_from_cfg(self):
+        cfg = {"agents": {"list": [{"id": "jarvis"}, {"id": "vision"}]}}
+        self.assertEqual(
+            doctor.agent_ids_for_workspaces(cfg, fallback=["orchestrator"]),
+            ["jarvis", "vision"],
+        )
+
+    def test_fallback_when_empty(self):
+        self.assertEqual(
+            doctor.agent_ids_for_workspaces({}, fallback=["orchestrator", "executor"]),
+            ["orchestrator", "executor"],
+        )
+        self.assertEqual(
+            doctor.agent_ids_for_workspaces(None, fallback=["a"]),
+            ["a"],
+        )
+
+    def test_no_cfg_no_fallback(self):
+        self.assertEqual(doctor.agent_ids_for_workspaces(None), [])
+
+
 class TestHasHeartbeat(unittest.TestCase):
     def test_from_defaults(self):
         defaults = {"heartbeat": {"every": "30m"}}

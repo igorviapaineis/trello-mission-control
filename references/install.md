@@ -5,7 +5,7 @@
 From a tagged GitHub release (recommended for end users):
 
 ```bash
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.1
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.2
 openclaw skills list                  # should include trello-mission-control
 ```
 

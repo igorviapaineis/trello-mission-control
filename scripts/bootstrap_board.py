@@ -175,7 +175,8 @@ def auto_detect_agents(openclaw_config_path=None, skip_ids=("orchestrator",)):
     except OSError:
         return []
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
-    text = re.sub(r"(^|[^:])//[^\n]*", lambda m: m.group(1), text)
+    # Negative lookbehind: don't strip // inside URLs like https://api.example.com
+    text = re.sub(r"(?<!:)//[^\n]*", "", text)
     text = re.sub(r",(\s*[}\]])", r"\1", text)
     try:
         cfg = json.loads(text)

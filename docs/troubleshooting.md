@@ -15,8 +15,8 @@ CHECK  5:config_present           OK   board_id=abc1234..., 4 lists
 CHECK  6:trello_auth              OK   @your-username
 CHECK  7:board_reachable          OK   "Mission Control" (open)
 CHECK  8:canonical_labels         OK   11 labels found
-CHECK  9:workspace_dirs           OK   orchestrator, executor
-CHECK 10:heartbeat_config         OK   2 agents with skill, heartbeat=30m
+CHECK  9:workspace_dirs           OK   2 workspaces ready (orchestrator, executor)
+CHECK 10:heartbeat_config         OK   2 agents with skill, heartbeat configured
 
 doctor: 10 OK / 0 WARN / 0 FAIL
 ```
@@ -225,21 +225,20 @@ This is a `WARN` not a `FAIL` — the rest of the system still works, but `claim
 
 **Symptom**
 ```
-CHECK  9:workspace_dirs           FAIL missing: workspace-orchestrator/AGENTS.md
+CHECK  9:workspace_dirs           FAIL missing: workspace-<agent-id>/AGENTS.md
 ```
 
 **Cause**
-`~/.openclaw/workspace-orchestrator/AGENTS.md` and/or `workspace-executor/AGENTS.md` are missing.
+For each agent listed in `~/.openclaw/openclaw.json` → `agents.list[].id`, the doctor expects a `~/.openclaw/workspace-<id>/AGENTS.md` file. One or more is missing. If `openclaw.json` is not present yet, it falls back to the default pair `orchestrator,executor`.
 
 **Fix**
-Copy and rename the templates (Quickstart step 6 in `SKILL.md`):
+Copy and rename the templates for each agent declared in `agents.list[]`:
 ```bash
 SKILL_DIR=~/.openclaw/skills/trello-mission-control
-mkdir -p ~/.openclaw/workspace-{orchestrator,executor}
-cp -r $SKILL_DIR/references/agent-templates/orchestrator/. ~/.openclaw/workspace-orchestrator/
-cp -r $SKILL_DIR/references/agent-templates/executor/.     ~/.openclaw/workspace-executor/
-for d in orchestrator executor; do
-  cd ~/.openclaw/workspace-$d
+for agent in orchestrator executor; do        # replace with your real agent ids
+  mkdir -p ~/.openclaw/workspace-$agent
+  cp -r $SKILL_DIR/references/agent-templates/executor/. ~/.openclaw/workspace-$agent/
+  cd ~/.openclaw/workspace-$agent
   for f in *.template; do mv "$f" "${f%.template}"; done
 done
 # then fill <MY_AGENT_ID> and <MY_LIST> in each file
@@ -247,39 +246,38 @@ done
 
 **Verify**
 ```bash
-ls ~/.openclaw/workspace-orchestrator/AGENTS.md ~/.openclaw/workspace-executor/AGENTS.md
-# Expected: both paths exist (no errors)
 python3 scripts/doctor.py 2>&1 | grep "CHECK  9"
-# Expected: CHECK  9:workspace_dirs           OK   orchestrator, executor
+# Expected: CHECK  9:workspace_dirs           OK   N workspaces ready (<your-agent-ids>)
 ```
 
 ### `CHECK 10: heartbeat_config FAIL`
 
 **Symptom**
 ```
-CHECK 10:heartbeat_config         FAIL trello-mission-control not in any agent's skills
+CHECK 10:heartbeat_config         FAIL no agent has trello-mission-control in skills
 ```
 or
 ```
-CHECK 10:heartbeat_config         FAIL heartbeat.every is 0m
+CHECK 10:heartbeat_config         FAIL N issue(s)
+    <agent-id>: no heartbeat.every
 ```
 
 **Cause**
-`~/.openclaw/openclaw.json` is missing, unparseable, or does not register `trello-mission-control` on the agents with a non-zero `heartbeat.every`.
+The doctor walks every entry in `~/.openclaw/openclaw.json` → `agents.list[]` whose own or inherited `skills` includes `trello-mission-control`. It expects at least one such agent, and every one of them must have a non-zero `heartbeat.every` (own or inherited from `agents.defaults.heartbeat`). Custom agent names are fine — the check no longer hardcodes `orchestrator`/`executor`.
 
 **Fix**
-Merge `references/snippets/openclaw-config.snippet.json5` into `~/.openclaw/openclaw.json`, then restart the gateway:
+Merge `references/snippets/openclaw-config.snippet.json5` into `~/.openclaw/openclaw.json` and adapt the agent ids/skills/heartbeat to your setup, then restart the gateway:
 ```bash
-$EDITOR ~/.openclaw/openclaw.json    # paste the snippet
+$EDITOR ~/.openclaw/openclaw.json    # paste the snippet, rename ids to match your agents
 openclaw gateway restart
 ```
 
 **Verify**
 ```bash
-python3 -c "import json,os; cfg=json.load(open(os.path.expanduser('~/.openclaw/openclaw.json'))); agents=cfg.get('agents',{}).get('list',[]); print([a['id'] for a in agents if 'trello-mission-control' in a.get('skills', [])])"
-# Expected: list of agent IDs with the skill registered
+python3 -c "import json,os,sys; sys.path.insert(0,'scripts'); import doctor; cfg=doctor.parse_openclaw_json(open(os.path.expanduser('~/.openclaw/openclaw.json')).read()); print([e['id'] for e in doctor.agents_with_skill(cfg, 'trello-mission-control')])"
+# Expected: non-empty list of agent ids with the skill registered
 python3 scripts/doctor.py 2>&1 | grep "CHECK 10"
-# Expected: CHECK 10:heartbeat_config         OK   N agents with skill, heartbeat=30m
+# Expected: CHECK 10:heartbeat_config         OK   N agents with skill, heartbeat configured
 ```
 
 ## Install
