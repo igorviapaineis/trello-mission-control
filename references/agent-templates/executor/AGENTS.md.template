@@ -27,20 +27,20 @@ get my list
 
 ## Picking a card
 
-Priority order:
+Use `get <MY_LIST> --for-agent <MY_AGENT_ID>`. The `--for-agent` filter already excludes cards held by other agents — you never see them. Within the listing:
 
 1. Cards with label `urgente` first.
 2. Among the rest, the oldest card.
 
-Skip any card that already has a `claim-*` label (someone else is working on it). If the only available card is claimed by *you* (your previous session was cut), assume your `onSessionStop` released it earlier; refetch.
+If a returned card carries your own `claim-<you>` label from a previous tick, `release_my_claims.py` (step 0 of HEARTBEAT) cleared it already; just refetch.
 
-## Claim → exit 5 = move on
+## Claim → exit 5 = HARD STOP
 
 ```bash
 python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py claim <CARD_ID> <YOUR_AGENT_ID>
 ```
 
-If exit code 5 (`ALREADY_CLAIMED`), skip this card — someone else just grabbed it. Try the next one.
+Exit code 5 (`ALREADY_CLAIMED`) means another agent owns this card. **STOP.** Do not start the work, even if the card is in your list. Refetch the list on the next tick and pick a different card. Never bypass this check.
 
 ## Ensure required skills
 

@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.3] — 2026-05-28
+
+### Fixed
+- Executors no longer pick up cards already claimed by another agent. `trello_task.py get` gains a `--for-agent <agent_id>` flag that filters out cards carrying a `claim-<other-agent>` label client-side. The shipped `HEARTBEAT.md.template` and `AGENTS.md.template` now pass the flag and treat `claim` exit code 5 (`ALREADY_CLAIMED`) as an unconditional STOP instead of a recoverable "try next" hint. Setups where a card crosses executor lists (manual UI move, stray `move`/`next` call) are now safe — the wrong executor's heartbeat skips the card.
+
+### Added
+- `scripts/trello_task.py::is_claim_label`, `::claim_label_owner`, `::filter_cards_for_agent` — pure helpers exposed for tests and future reuse.
+- `tests/test_get_filter.py` — 21 cases covering label-shape edge cases and the agent filter.
+- `tests/smoke.sh` adds a dry-run entry for `get --for-agent`.
+- `docs/troubleshooting.md` "Card showed up in the wrong executor's list" section, pointing at `trello_task.py history <card_id>` to audit who moved the card.
+
+### Changed
+- `SKILL.md` Rules section adds an explicit bullet: never work a card whose `claim-*` is for another agent. `SKILL.md` CLI reference documents `get --for-agent`.
+- README, `docs/quickstart.md`, `references/install.md`, `SKILL.md` bump `@v3.1.2` → `@v3.1.3`.
+- `package.json` bumped to 3.1.3.
+
+### Notes
+- Bugfix patch. `--for-agent` is opt-in for existing callers; default `get` behaviour is unchanged.
+- Triggered by a real incident: card created in list `NEBULA` with label `claim-NEBULA` was worked by `VISION` after crossing lists.
+
 ## [3.1.2] — 2026-05-28
 
 ### Fixed

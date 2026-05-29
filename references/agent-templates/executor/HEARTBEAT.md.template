@@ -7,20 +7,20 @@ Run these steps in order. Replace `<MY_LIST>` and `<MY_AGENT_ID>` with the execu
 #    This replaces the former plugin onSessionStop hook.
 python3 ~/.openclaw/skills/trello-mission-control/scripts/release_my_claims.py <MY_AGENT_ID>
 
-# 1. Pick up new work from my list.
-python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py get <MY_LIST>
+# 1. Pick up new work from my list. --for-agent hides cards already claimed by others.
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py get <MY_LIST> --for-agent <MY_AGENT_ID>
 ```
 
 - Output `NO_CARDS` → reply `HEARTBEAT_OK` and stop.
-- Otherwise pick the card to work on:
+- Otherwise pick the card to work on, from the listing as returned (already filtered):
   - First any with label `urgente`.
-  - Otherwise the oldest one without any `claim-*` label.
+  - Otherwise the oldest one.
 
 For the chosen card, in order:
 
 ```bash
 python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py claim <CARD_ID> <MY_AGENT_ID>
-# exit 5 → skip this card, try the next one
+# exit 5 → STOP. Another agent owns this card. Do not start work. Refetch the list next tick.
 python3 ~/.openclaw/skills/trello-mission-control/scripts/ensure_skills.py <CARD_ID>
 # exit 8 → card was blocked; skip
 ```

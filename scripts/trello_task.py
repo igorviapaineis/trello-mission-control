@@ -9,7 +9,7 @@ Usage:
   python3 trello_task.py archive <card_id>
 
   # Cards
-  python3 trello_task.py get <list_name_or_id>
+  python3 trello_task.py get <list_name_or_id> [--for-agent <agent_id>]
   python3 trello_task.py create <list_name_or_id> <name> [labels] [due] [member]
   python3 trello_task.py done <card_id>
   python3 trello_task.py move <card_id> <target_list_name_or_id>
@@ -290,6 +290,43 @@ def claim_label_name(agent):
     return f"claim-{agent}"
 
 
+def is_claim_label(name):
+    """True if `name` is a non-empty `claim-<owner>` label."""
+    if not isinstance(name, str):
+        return False
+    if not name.startswith("claim-"):
+        return False
+    return len(name) > len("claim-")
+
+
+def claim_label_owner(name):
+    """Return owner slug from `claim-<owner>`, or None."""
+    if not is_claim_label(name):
+        return None
+    return name[len("claim-"):]
+
+
+def filter_cards_for_agent(cards, agent_id):
+    """Drop cards whose labels include `claim-X` where X != agent_id.
+
+    If agent_id is falsy, returns cards unchanged (backwards compatible).
+    Pure helper — no I/O.
+    """
+    if not agent_id:
+        return list(cards or [])
+    out = []
+    for c in cards or []:
+        skip = False
+        for lbl in c.get("labels") or []:
+            owner = claim_label_owner(lbl.get("name"))
+            if owner and owner != agent_id:
+                skip = True
+                break
+        if not skip:
+            out.append(c)
+    return out
+
+
 def resolve_claim_label_id(agent, config, creds):
     """Find or create the claim-<agent> label on the board."""
     cfg_id = config.get("labels", {}).get(claim_label_name(agent))
@@ -449,13 +486,16 @@ def cmd_archive(card_id, creds, dry):
     print(f"ARCHIVED:{card_id}")
 
 
-def cmd_get(list_name_or_id, config, creds, dry):
+def cmd_get(list_name_or_id, config, creds, dry, for_agent=None):
     list_id = resolve_list(list_name_or_id, config)
     if dry:
-        print(f"DRY: Would get cards from list {list_name_or_id} ({list_id})")
+        suffix = f" --for-agent {for_agent}" if for_agent else ""
+        print(f"DRY: Would get cards from list {list_name_or_id} ({list_id}){suffix}")
         return
     params = {"filter": "open", "fields": "id,name,desc,labels,idList,due,members,idChecklists"}
     cards = api("GET", f"/lists/{list_id}/cards", params, creds)
+    if for_agent:
+        cards = filter_cards_for_agent(cards, for_agent)
     if not cards:
         print("NO_CARDS")
         return
@@ -981,7 +1021,7 @@ def parse_args(argv):
     """Extract flags. Returns (clean_args, flags_dict)."""
     global VERBOSE
     clean = []
-    flags = {"dry": False, "tag": None, "filter": None, "since": None, "expect": None, "label": None, "list": None}
+    flags = {"dry": False, "tag": None, "filter": None, "since": None, "expect": None, "label": None, "list": None, "for_agent": None}
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -1006,6 +1046,9 @@ def parse_args(argv):
             i += 1
         elif a == "--list" and i + 1 < len(argv):
             flags["list"] = argv[i + 1]
+            i += 1
+        elif a == "--for-agent" and i + 1 < len(argv):
+            flags["for_agent"] = argv[i + 1]
             i += 1
         else:
             clean.append(a)
@@ -1052,7 +1095,7 @@ def main():
         elif cmd == "prev" and len(args) >= 2:
             cmd_pipeline_prev(args[1], config, creds, dry, flags.get("expect"))
         elif cmd == "get" and len(args) >= 2:
-            cmd_get(args[1], config, creds, dry)
+            cmd_get(args[1], config, creds, dry, for_agent=flags.get("for_agent"))
         elif cmd == "create" and len(args) >= 3:
             label_ids = args[3] if len(args) > 3 else ""
             due = args[4] if len(args) > 4 else None

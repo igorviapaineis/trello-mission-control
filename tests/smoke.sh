@@ -47,6 +47,7 @@ check "board" python3 scripts/trello_task.py --dry board
 check "members" python3 scripts/trello_task.py --dry members
 check "card" python3 scripts/trello_task.py --dry card CARDID
 check "get inbox" python3 scripts/trello_task.py --dry get inbox
+check "get --for-agent" python3 scripts/trello_task.py --dry get inbox --for-agent jarvis
 check "create" python3 scripts/trello_task.py --dry create inbox "test name" "urgente"
 check "done" python3 scripts/trello_task.py --dry done CARDID
 check "move" python3 scripts/trello_task.py --dry move CARDID executor

@@ -407,6 +407,36 @@ Causes:
 - The meta block has invalid JSON. Trello accepts arbitrary text in `desc`, so you can see the block visually but the parser rejects it. Fix the JSON inside `<!--meta ... -->`.
 - The meta block uses the wrong markers. They must be exactly `<!--meta` and `-->` with the JSON between them.
 
+### Card showed up in the wrong executor's list and got worked by the wrong agent
+
+**Symptom**
+A card was created in list `<owner-list>` with label `claim-<owner>`. Agent `<other>` ran it end-to-end. Activity log shows the card moved from `<owner-list>` to `<other>`'s list before `<other>` picked it up.
+
+**Cause**
+The `--for-agent` filter on `get` and the claim exit-5 gate both look at the **`claim-*` label**, not at list membership. If a card crosses lists (manual UI drag in Trello, a stray `move`/`next` call, a misconfigured automation), the *new* list's executor sees the card unless it carries the right `claim-*` label. The protective layer is the label, not the list.
+
+The most likely sources of an unwanted cross-list jump are:
+- A human dragged the card in the Trello UI.
+- An agent ran `trello_task.py move <id> <wrong-list>` or `next <id>` without `--expect`.
+- A pre-3.1.3 executor template was in use — it didn't pass `--for-agent` and skipped the claim check.
+
+**Fix**
+1. Audit the card's history to find the actor + timestamp of the move:
+   ```bash
+   python3 scripts/trello_task.py history <card_id>
+   ```
+   Look for `updateCard` actions changing `idList`. The actor name appears at `@<user>`.
+2. Make sure the executor templates pass `--for-agent <MY_AGENT_ID>` (refresh them from `references/agent-templates/executor/` if they are stale).
+3. If a stray script moved the card, fix the caller; consider passing `--expect` on every pipeline transition so a wrong-state move fails loudly.
+
+**Verify**
+```bash
+python3 scripts/trello_task.py get <other-agent-list> --for-agent <other-agent-id>
+# Expected: the card is no longer in the listing (filtered out because its claim-* belongs to someone else)
+python3 scripts/trello_task.py get <other-agent-list> --for-agent <owner>
+# Expected: the card IS in the listing (the owner can still see its own work)
+```
+
 ### `archive_old.py` says it would archive zero cards
 Cause: no cards in the source list have `dateLastActivity` older than the threshold. Check with:
 ```bash

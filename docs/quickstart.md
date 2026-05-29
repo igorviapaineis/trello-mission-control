@@ -12,7 +12,7 @@ Get a working 2-agent setup in 5 minutes.
 #    Prefer manual setup? See references/board-template.md §1 onwards.
 
 # 1. Install the skill (git source; will move to `clawhub:igorviapaineis/trello-mission-control` once published)
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.2
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.3
 
 # 2. Set Trello credentials
 export TRELLO_API_KEY='...'      # https://trello.com/power-ups/admin

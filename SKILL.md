@@ -60,7 +60,7 @@ If any of the above is missing, `scripts/doctor.py` (step 5 of the Quickstart) w
 #    Prefer to set everything up manually? Follow references/board-template.md §1 onwards.
 
 # 1. Install the skill (git source until published to ClawHub)
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.2
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.3
 
 # 2. Export Trello credentials (every script reads them from the environment)
 export TRELLO_API_KEY='...'
@@ -143,7 +143,8 @@ User --chat--> Orchestrator
 - Handoff = move card + comment what was done.
 
 ### Claim / release (atomic-ish lock)
-- Before working on a card, call `claim <card_id> <agent>`. Exit 5 = `ALREADY_CLAIMED` → skip card.
+- Before working on a card, call `claim <card_id> <agent>`. Exit 5 = `ALREADY_CLAIMED` → **HARD STOP**, refetch the list and pick a different card. Never bypass.
+- **Never work on a card whose `claim-*` label is for another agent — even if the card sits in your list.** `trello_task.py get --for-agent <me>` filters those out client-side; `trello_task.py claim` exit code 5 is the second gate. Do not bypass either.
 - After work (or aborting), call `release <card_id> <agent>` or move to `done`/next pipeline stage.
 - On session stop, the plugin hook `onSessionStop` calls `release_my_claims.py <agent>` to free anything that was claimed.
 
@@ -208,7 +209,7 @@ python3 {baseDir}/scripts/trello_task.py rate-budget             # remaining API
 
 ### Cards
 ```bash
-python3 {baseDir}/scripts/trello_task.py get <list>
+python3 {baseDir}/scripts/trello_task.py get <list> [--for-agent <agent_id>]  # --for-agent hides cards claimed by other agents
 python3 {baseDir}/scripts/trello_task.py card <id>
 python3 {baseDir}/scripts/trello_task.py create <list> "<name>" "labels,csv" [due] [member]
 python3 {baseDir}/scripts/trello_task.py template <tpl_card_id> <list> "<new name>"
