@@ -224,7 +224,9 @@ python3 {baseDir}/scripts/trello_task.py card <id>
 python3 {baseDir}/scripts/trello_task.py create <list> "<name>" "labels,csv" [due] [member]
 python3 {baseDir}/scripts/trello_task.py template <tpl_card_id> <list> "<new name>"
 python3 {baseDir}/scripts/trello_task.py archive <id>
-python3 {baseDir}/scripts/trello_task.py done <id>
+python3 {baseDir}/scripts/trello_task.py done <id> [agent]   # +done label, dueComplete, release claim; card does NOT move
+python3 {baseDir}/scripts/trello_task.py reopen <id>         # undo done (-done label, dueComplete=false)
+# --- optional pipeline mode (multi-stage cards only) ---
 python3 {baseDir}/scripts/trello_task.py move <id> <target_list>
 python3 {baseDir}/scripts/trello_task.py next <id> --expect <current>
 python3 {baseDir}/scripts/trello_task.py prev <id> --expect <current>
