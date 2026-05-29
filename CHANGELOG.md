@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] — 2026-05-29
+
+### Changed (behaviour)
+- **Status is now a label, not a list move.** Default model is single-owner: a card is created in its owner agent's column and stays there for its whole life. `claim-<agent>` = doing/em-andamento; the new `done` label (+ native `dueComplete`) = finished. This removes the `done`-list pile-up and the cross-list pickup bug class. Pipeline (multi-stage handoff via `next`/`prev`) is kept as a first-class **optional** mode for cards that genuinely need it.
+- `trello_task.py done <id> [agent]` no longer moves the card to a `done` list. It adds the `done` label, sets `dueComplete=true`, and releases the agent's claim — the card does not move. `[agent]` defaults to `$OPENCLAW_AGENT_ID`.
+- `trello_task.py get <list> --for-agent <me>` now also hides cards carrying the `done` label (actionable view), in addition to cards claimed by other agents.
+- `scripts/archive_old.py` default mode now scans the whole board and archives every `done`-labelled card with no activity for N days (default `--days 14`). This timer is what keeps each column compact now that finished cards stay put. The old `--from <list>` whole-list archive is kept as a legacy override.
+- `scripts/bootstrap_board.py` no longer creates a `done` list: fresh boards are `inbox` + one column per agent + `_templates`.
+- `scripts/setup_labels.py` adds `done` (green) to the canonical label set.
+- `scripts/digest.py` reports a `done` count per column and overall.
+- `_pipeline_step` / `cmd_pipeline_status` short-circuit on `--dry` before requiring a `pipeline` config (dry runs never error when no pipeline is defined).
+
+### Added
+- `trello_task.py reopen <id>` — undo a completion (removes the `done` label, clears `dueComplete`).
+- `trello_task.py resolve_or_create_label(name, color, …)` helper; `archive_old.card_is_done(card)` helper.
+- `tests/test_setup_labels.py`, `tests/test_done_label.py`; `done`/`reopen`/`exclude_done` coverage in existing test files; `done agent` + `reopen` smoke entries.
+- `docs/migrating-from-3.0.x.md` gains a "Migrating to 3.2.0" section; `docs/troubleshooting.md` gains a "done list / columns keep piling up → schedule archive_old.py" entry.
+
+### Changed (docs)
+- SKILL.md, executor + orchestrator templates, `docs/architecture.md`, `docs/quickstart.md`, `references/board-template.md`, `references/example-config.json` rewritten for the label-status model (no `done` list; pipeline documented as optional).
+- README, `docs/quickstart.md`, `references/install.md`, `SKILL.md` bump `@v3.1.3` → `@v3.2.0`.
+- `package.json` bumped to 3.2.0.
+
+### Notes
+- Minor release (new model + behaviour change), backward-compatible: existing boards keep working; a legacy `done` list simply stops receiving new cards. Adopt by running `setup_labels.py` (creates the `done` label), refreshing templates, and scheduling `archive_old.py`. See the migration note.
+- Triggered by Igor's proposal to stop moving cards to an in-progress/done list (hundreds pile up) and convey status by label on the owner's column instead.
+
 ## [3.1.3] — 2026-05-28
 
 ### Fixed

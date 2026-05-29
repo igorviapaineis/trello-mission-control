@@ -104,5 +104,33 @@ class TestFilterCardsForAgent(unittest.TestCase):
         self.assertEqual([c["id"] for c in out], ["A"])
 
 
+class TestFilterExcludeDone(unittest.TestCase):
+    def test_exclude_done_drops_done_card(self):
+        cards = [card("A", ["done"]), card("B", [])]
+        out = t.filter_cards_for_agent(cards, "vision", exclude_done=True)
+        self.assertEqual([c["id"] for c in out], ["B"])
+
+    def test_exclude_done_false_keeps_done_card(self):
+        cards = [card("A", ["done"]), card("B", [])]
+        out = t.filter_cards_for_agent(cards, "vision", exclude_done=False)
+        self.assertEqual([c["id"] for c in out], ["A", "B"])
+
+    def test_exclude_done_without_agent(self):
+        cards = [card("A", ["done"]), card("B", ["claim-jarvis"]), card("C", [])]
+        out = t.filter_cards_for_agent(cards, None, exclude_done=True)
+        # No agent → claim filter off, but done still dropped.
+        self.assertEqual([c["id"] for c in out], ["B", "C"])
+
+    def test_exclude_done_and_claim_other(self):
+        cards = [
+            card("A", ["done"]),
+            card("B", ["claim-jarvis"]),
+            card("C", ["claim-vision"]),
+            card("D", []),
+        ]
+        out = t.filter_cards_for_agent(cards, "vision", exclude_done=True)
+        self.assertEqual([c["id"] for c in out], ["C", "D"])
+
+
 if __name__ == "__main__":
     unittest.main()

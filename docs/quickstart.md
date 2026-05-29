@@ -12,7 +12,7 @@ Get a working 2-agent setup in 5 minutes.
 #    Prefer manual setup? See references/board-template.md §1 onwards.
 
 # 1. Install the skill (git source; will move to `clawhub:igorviapaineis/trello-mission-control` once published)
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.3
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.2.0
 
 # 2. Set Trello credentials
 export TRELLO_API_KEY='...'      # https://trello.com/power-ups/admin
@@ -20,8 +20,8 @@ export TRELLO_TOKEN='...'
 
 # 3. Create boards in Trello UI:
 #    - "Mission Control"          (active board)
-#      lists: inbox, executor, done, _templates
-#    - "Mission Control — Archive" (empty; nightly archive target)
+#      lists: inbox, executor, _templates   (NO done list — status is a label)
+#    - "Mission Control — Archive" (empty; archive_old.py sweep target)
 
 # 4. Generate and edit the config
 cd ~/.openclaw/skills/trello-mission-control
@@ -53,3 +53,15 @@ python3 scripts/trello_task.py rate-budget
 ```
 
 Now open a session with the orchestrator and send a test message. Full reference: [references/install.md](../references/install.md). Architecture: [docs/architecture.md](architecture.md). Worked example: [docs/walkthrough.md](walkthrough.md).
+
+## Status model
+
+A card belongs to one agent and **stays in that agent's column** — status is a label, not a list:
+
+| State | Signal |
+|---|---|
+| Queued | in the column, no `claim-*`, no `done` |
+| Doing | `claim-<agent>` |
+| Done | `done` label + `dueComplete` (card does not move) |
+
+Finish with `done <id> <agent>`; undo with `reopen <id>`. There is no `done` list — schedule `archive_old.py` (cron) to sweep `done`-labelled cards to the archive board so columns stay compact. Multi-stage cards can opt into pipeline mode (`pipeline` array in config + `next`/`prev`).

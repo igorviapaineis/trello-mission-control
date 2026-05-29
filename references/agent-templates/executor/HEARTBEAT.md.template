@@ -40,14 +40,16 @@ python3 ~/.openclaw/skills/trello-mission-control/scripts/update_card_complete.p
   --agent <MY_AGENT_ID>
 ```
 
-Advance or finish:
+Finish (default, single-owner) — the card stays in your column; `done` labels it, sets the native check, and releases your claim:
 
 ```bash
-# pipeline → handoff
-python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py next <CARD_ID> --expect <MY_LIST>
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py done <CARD_ID> <MY_AGENT_ID>
+```
 
-# or single-stage → done
-python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py done <CARD_ID>
+Pipeline mode only (card has multiple stages, `pipeline` defined in config) — hand off to the next stage instead, and call `done` only at the final stage:
+
+```bash
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py next <CARD_ID> --expect <MY_LIST>
 ```
 
 Loop until the list is empty, then reply `HEARTBEAT_OK`.

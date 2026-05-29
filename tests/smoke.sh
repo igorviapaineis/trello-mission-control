@@ -50,6 +50,8 @@ check "get inbox" python3 scripts/trello_task.py --dry get inbox
 check "get --for-agent" python3 scripts/trello_task.py --dry get inbox --for-agent jarvis
 check "create" python3 scripts/trello_task.py --dry create inbox "test name" "urgente"
 check "done" python3 scripts/trello_task.py --dry done CARDID
+check "done agent" python3 scripts/trello_task.py --dry done CARDID jarvis
+check "reopen" python3 scripts/trello_task.py --dry reopen CARDID
 check "move" python3 scripts/trello_task.py --dry move CARDID executor
 check "next --expect" python3 scripts/trello_task.py --dry next CARDID --expect inbox
 check "prev --expect" python3 scripts/trello_task.py --dry prev CARDID --expect executor

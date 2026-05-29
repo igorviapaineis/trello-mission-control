@@ -28,6 +28,7 @@ CANONICAL_LABELS = [
     ("pediu", "purple"),
     ("stale", "lime"),
     ("qa-failed", "pink"),
+    ("done", "green"),
 ]
 
 

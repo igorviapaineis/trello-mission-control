@@ -42,20 +42,23 @@ class TestBuildListNames(unittest.TestCase):
     def test_default_executor(self):
         self.assertEqual(
             bb.build_list_names(["executor"]),
-            ["inbox", "executor", "done", "_templates"],
+            ["inbox", "executor", "_templates"],
         )
 
     def test_multi_agent_order(self):
         self.assertEqual(
             bb.build_list_names(["jarvis", "vision", "friday", "sia"]),
-            ["inbox", "jarvis", "vision", "friday", "sia", "done", "_templates"],
+            ["inbox", "jarvis", "vision", "friday", "sia", "_templates"],
         )
 
     def test_single_custom_agent(self):
         self.assertEqual(
             bb.build_list_names(["dev"]),
-            ["inbox", "dev", "done", "_templates"],
+            ["inbox", "dev", "_templates"],
         )
+
+    def test_no_done_list(self):
+        self.assertNotIn("done", bb.build_list_names(["jarvis", "vision"]))
 
 
 class TestMergeConfig(unittest.TestCase):

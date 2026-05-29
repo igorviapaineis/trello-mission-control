@@ -74,10 +74,12 @@ def main():
     lists_cfg = config.get("lists", {})
 
     counts = {}
+    done_counts = {}
     overdue = []
     urgent = []
     stale = []
     claimed = []
+    done = []
 
     now = time.time()
     stale_cutoff = now - stale_days * 86400
@@ -89,6 +91,9 @@ def main():
             if t and time.mktime(t) < now:
                 overdue.append(c)
         label_names = [(l.get("name") or "") for l in c.get("labels", [])]
+        if "done" in label_names:
+            done.append(c)
+            done_counts[c["idList"]] = done_counts.get(c["idList"], 0) + 1
         if "urgente" in label_names:
             urgent.append(c)
         dla = c.get("dateLastActivity") or ""
@@ -109,7 +114,9 @@ def main():
                     lid = lst_id
                     break
         n = counts.get(lid, 0) if lid else 0
-        print(f"    {stage}: {n}")
+        d = done_counts.get(lid, 0) if lid else 0
+        print(f"    {stage}: {n} ({d} done)")
+    print(f"  done: {len(done)}")
     print(f"  overdue: {len(overdue)}")
     for c in overdue[:10]:
         print(f"    - {c['name']} [{c['id'][:8]}] due={c.get('due', '')[:10]}")

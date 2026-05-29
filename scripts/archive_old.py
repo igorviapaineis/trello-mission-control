@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""Move cards older than N days from a list (default: done) to the archive board.
+"""Archive finished cards to the archive board.
+
+Default: scan the whole active board and archive every card that carries the
+`done` label and has had no activity for N days. This is the timer that keeps
+each agent column compact in the single-owner / label-status model (cards never
+leave their column on completion, so a periodic sweep removes the finished ones).
+
+Legacy: `--from <list>` archives a whole named list by age (old behaviour).
 
 Free-tier hygiene: keeps the active board well below the 5000 open cards cap.
 
 Usage:
-  python3 archive_old.py --days 30 --from done [--dry]
+  python3 archive_old.py [--days 14] [--from <list>] [--dry]
 """
 
 import sys
@@ -50,9 +57,13 @@ def archive_month_list(archive_board_id, month_key, creds):
     return new_list["id"]
 
 
+def card_is_done(card):
+    return any((l.get("name") == "done") for l in card.get("labels") or [])
+
+
 def main():
-    days = 30
-    from_list = "done"
+    days = 14
+    from_list = None
     dry = False
     args = sys.argv[1:]
     i = 0
@@ -78,29 +89,46 @@ def main():
         sys.exit(EXIT_CONFIG)
     creds = load_credentials()
 
-    list_id = resolve_list(from_list, config)
+    board_id = config["board_id"]
     if dry:
-        print(f"DRY: would scan list '{from_list}' ({list_id}) for cards older than {days}d and move them to archive board {archive_board_id}")
+        if from_list:
+            print(f"DRY: would scan list '{from_list}' for cards older than {days}d and move them to archive board {archive_board_id}")
+        else:
+            print(f"DRY: would scan board {board_id} for `done`-labelled cards older than {days}d and move them to archive board {archive_board_id}")
         return
-    cards = api(
-        "GET",
-        f"/lists/{list_id}/cards",
-        {
-            "filter": "open",
-            "fields": "id,name,desc,labels,dateLastActivity",
-        },
-        creds,
-    )
+
+    if from_list:
+        # Legacy: archive a whole named list by age.
+        list_id = resolve_list(from_list, config)
+        cards = api(
+            "GET",
+            f"/lists/{list_id}/cards",
+            {"filter": "open", "fields": "id,name,desc,labels,dateLastActivity"},
+            creds,
+        )
+        select = lambda c: True
+    else:
+        # Default: archive `done`-labelled cards anywhere on the board.
+        cards = api(
+            "GET",
+            f"/boards/{board_id}/cards",
+            {"filter": "open", "fields": "id,name,desc,labels,dateLastActivity"},
+            creds,
+        )
+        select = card_is_done
 
     cutoff = time.time() - days * 86400
     to_archive = []
     for c in cards:
+        if not select(c):
+            continue
         dla = c.get("dateLastActivity") or ""
         t = parse_iso(dla)
         if t and time.mktime(t) < cutoff:
             to_archive.append((dla, c))
 
-    print(f"ARCHIVE_PLAN:{len(to_archive)} cards from list '{from_list}' older than {days}d")
+    label = f"cards from list '{from_list}'" if from_list else "done-labelled cards"
+    print(f"ARCHIVE_PLAN:{len(to_archive)} {label} older than {days}d")
 
     archived = 0
     for dla, c in to_archive:

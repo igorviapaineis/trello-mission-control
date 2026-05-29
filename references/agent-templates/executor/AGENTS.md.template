@@ -73,11 +73,14 @@ python3 ~/.openclaw/skills/trello-mission-control/scripts/update_card_complete.p
   --agent <YOUR_AGENT_ID>
 ```
 
-## Handoff vs done
+## Finishing a card
 
-- Final stage of work? → `next --expect <your-list>` (if pipeline) or `done <CARD_ID>` (if not).
-- Multi-stage card needing review/QA/deploy? → `next --expect <your-list>`. The next agent picks it up.
-- Found a blocker you can't fix? → `comment --tag blocked "<reason>"`, add label `bloqueado`, leave the card. Orchestrator will see it in the next digest.
+Status lives in **labels**, not in which list the card sits in. `claim-<you>` = doing/em-andamento. Finishing = the `done` label + native check; the card never leaves your column.
+
+- **Default (single-owner):** `done <CARD_ID> <YOUR_AGENT_ID>` — adds the `done` label, sets `dueComplete`, releases your claim. The card stays put; a nightly `archive_old.py` sweeps `done`-labelled cards off the board after N days.
+- **Pipeline mode (only if the card has multiple stages):** `next --expect <your-list>` hands off to the next agent's column; call `done` only at the final stage.
+- **Blocker you can't fix?** → `comment --tag blocked "<reason>"`, add label `bloqueado`, leave the card. Orchestrator sees it in the next digest.
+- **Undo a completion?** → `reopen <CARD_ID>` removes the `done` label and clears the check.
 
 ## Rules
 

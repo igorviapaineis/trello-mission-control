@@ -64,9 +64,12 @@ def parse_agents(spec):
 def build_list_names(agents):
     """Return the ordered list-name layout for the active board.
 
-    inbox → <agent>* → done → _templates
+    inbox → <agent>* → _templates
+
+    No `done` list: completion is signalled by the `done` label (single-owner
+    default). Pipeline users add stages via their own `pipeline` config.
     """
-    return ["inbox"] + list(agents) + ["done", "_templates"]
+    return ["inbox"] + list(agents) + ["_templates"]
 
 
 def merge_config(existing, new_fields):

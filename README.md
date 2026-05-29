@@ -8,7 +8,7 @@ OpenClaw **skill** for multi-agent task orchestration via Trello. The user talks
 ## Quickstart
 
 ```bash
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.3
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.2.0
 export TRELLO_API_KEY='...' TRELLO_TOKEN='...'       # https://trello.com/power-ups/admin
 cd ~/.openclaw/skills/trello-mission-control
 python3 scripts/trello_task.py init                  # fill IDs in the generated config
@@ -31,7 +31,7 @@ Full setup: [docs/quickstart.md](docs/quickstart.md) · architecture: [docs/arch
 ## Install
 
 ```bash
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.1.3
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.2.0
 ```
 
 Full setup steps (board creation, credentials, workspaces, config snippets, smoke test): see `references/install.md`.

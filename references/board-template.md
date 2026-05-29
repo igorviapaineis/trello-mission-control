@@ -134,9 +134,11 @@ python3 scripts/digest.py
 
 If both run without errors, the board is wired correctly.
 
-## 7. Real-world example: pipeline of named agents
+## 7. Real-world example: optional pipeline of named agents
 
-The default template uses a single `executor` list because that is the minimum that exercises the protocol. In practice, most setups fan out to multiple named agents — each owning one stage of the pipeline.
+> **This section shows the optional pipeline mode** — one card flowing through several named agents in sequence (JARVIS → VISION → Friday → Sia), each stage a column, plus a terminal `done` column. Use it only when a single card genuinely needs multiple agents. The **default** model is single-owner (one agent per card, no move, `done` label) — see Section 1. In pipeline mode the final stage still finishes with the `done` label; the `done` column below is illustrative of the older list-based flow.
+
+The single `executor` layout is the minimum that exercises the protocol. Some setups fan out to multiple named agents — each owning one stage of the pipeline.
 
 Concrete example with four agents named **JARVIS** (research), **VISION** (design), **Friday** (build), and **Sia** (review):
 

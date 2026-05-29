@@ -11,11 +11,12 @@ Usage:
   # Cards
   python3 trello_task.py get <list_name_or_id> [--for-agent <agent_id>]
   python3 trello_task.py create <list_name_or_id> <name> [labels] [due] [member]
-  python3 trello_task.py done <card_id>
+  python3 trello_task.py done <card_id> [agent]      # +done label, dueComplete, release claim; no move
+  python3 trello_task.py reopen <card_id>            # undo done (-done label, dueComplete=false)
   python3 trello_task.py move <card_id> <target_list_name_or_id>
-  python3 trello_task.py next <card_id> [--expect <list>]
-  python3 trello_task.py prev <card_id> [--expect <list>]
-  python3 trello_task.py pipeline-status
+  python3 trello_task.py next <card_id> [--expect <list>]   # optional pipeline mode
+  python3 trello_task.py prev <card_id> [--expect <list>]   # optional pipeline mode
+  python3 trello_task.py pipeline-status                    # optional pipeline mode
 
   # Claim/release (v3)
   python3 trello_task.py claim <card_id> <agent>
@@ -306,20 +307,27 @@ def claim_label_owner(name):
     return name[len("claim-"):]
 
 
-def filter_cards_for_agent(cards, agent_id):
-    """Drop cards whose labels include `claim-X` where X != agent_id.
+def filter_cards_for_agent(cards, agent_id, exclude_done=False):
+    """Return the cards an agent can act on.
 
-    If agent_id is falsy, returns cards unchanged (backwards compatible).
-    Pure helper — no I/O.
+    Drops cards whose labels include `claim-X` where X != agent_id. When
+    `exclude_done` is true, also drops cards carrying the `done` label
+    (finished work is not actionable). If `agent_id` is falsy the claim
+    filter is skipped, but `exclude_done` still applies. Pure helper — no I/O.
     """
-    if not agent_id:
+    if not agent_id and not exclude_done:
         return list(cards or [])
     out = []
     for c in cards or []:
         skip = False
         for lbl in c.get("labels") or []:
-            owner = claim_label_owner(lbl.get("name"))
-            if owner and owner != agent_id:
+            nm = lbl.get("name")
+            if agent_id:
+                owner = claim_label_owner(nm)
+                if owner and owner != agent_id:
+                    skip = True
+                    break
+            if exclude_done and nm == "done":
                 skip = True
                 break
         if not skip:
@@ -338,6 +346,23 @@ def resolve_claim_label_id(agent, config, creds):
         if lbl.get("name") == claim_label_name(agent):
             return lbl["id"]
     return None
+
+
+def resolve_or_create_label(name, color, config, creds):
+    """Find the `name` label id (config first, then board), else create it.
+
+    Generalised twin of resolve_claim_label_id — used for `done` and any other
+    canonical label that must exist before it can be attached to a card.
+    """
+    cfg_id = (config.get("labels") or {}).get(name)
+    if cfg_id:
+        return cfg_id
+    board_id = config["board_id"]
+    for lbl in api("GET", f"/boards/{board_id}/labels", {"fields": "id,name", "limit": "1000"}, creds):
+        if lbl.get("name") == name:
+            return lbl["id"]
+    new_lbl = api("POST", f"/boards/{board_id}/labels", {"name": name, "color": color}, creds)
+    return new_lbl["id"]
 
 
 def format_card(c):
@@ -495,7 +520,7 @@ def cmd_get(list_name_or_id, config, creds, dry, for_agent=None):
     params = {"filter": "open", "fields": "id,name,desc,labels,idList,due,members,idChecklists"}
     cards = api("GET", f"/lists/{list_id}/cards", params, creds)
     if for_agent:
-        cards = filter_cards_for_agent(cards, for_agent)
+        cards = filter_cards_for_agent(cards, for_agent, exclude_done=True)
     if not cards:
         print("NO_CARDS")
         return
@@ -526,16 +551,34 @@ def cmd_create(list_name_or_id, name, config, creds, dry, label_ids="", due=None
     print(f"CREATED:{card['id']}|{card['name']}|{card.get('shortUrl','')}")
 
 
-def cmd_done(card_id, config, creds, dry):
-    done_id = config.get("lists", {}).get("done")
-    if not done_id:
-        print("ERROR: 'done' list not defined in config.", file=sys.stderr)
-        sys.exit(EXIT_CONFIG)
+def cmd_done(card_id, config, creds, dry, agent=None):
+    """Mark a card done without moving it: add the `done` label, set the native
+    `dueComplete` check, and release the agent's claim. The card stays in its
+    owner/stage column (single-owner default, or terminal step of a pipeline).
+    """
     if dry:
-        print(f"DRY: Would move card {card_id} to done ({done_id})")
+        who = f" (release claim-{agent})" if agent else ""
+        print(f"DRY: Would mark {card_id} done: +done label, dueComplete=true{who}")
         return
-    api("PUT", f"/cards/{card_id}", {"idList": done_id, "dueComplete": "true"}, creds)
+    done_label_id = resolve_or_create_label("done", "green", config, creds)
+    api("POST", f"/cards/{card_id}/idLabels", {"value": done_label_id}, creds)
+    api("PUT", f"/cards/{card_id}", {"dueComplete": "true"}, creds)
+    if agent:
+        claim_id = resolve_claim_label_id(agent, config, creds)
+        if claim_id:
+            api_delete(f"/cards/{card_id}/idLabels/{claim_id}", creds)
     print(f"DONE:{card_id}")
+
+
+def cmd_reopen(card_id, config, creds, dry):
+    """Undo a done: remove the `done` label and clear `dueComplete`."""
+    if dry:
+        print(f"DRY: Would reopen {card_id}: -done label, dueComplete=false")
+        return
+    done_label_id = resolve_or_create_label("done", "green", config, creds)
+    api_delete(f"/cards/{card_id}/idLabels/{done_label_id}", creds)
+    api("PUT", f"/cards/{card_id}", {"dueComplete": "false"}, creds)
+    print(f"REOPENED:{card_id}")
 
 
 def cmd_move(card_id, target, config, creds, dry):
@@ -549,16 +592,16 @@ def cmd_move(card_id, target, config, creds, dry):
 
 def _pipeline_step(card_id, config, creds, dry, direction, expect=None):
     pipeline = config.get("pipeline", [])
-    if not pipeline:
-        print("ERROR: No pipeline defined in config.", file=sys.stderr)
-        sys.exit(EXIT_CONFIG)
-    lists = config.get("lists", {})
     if dry:
         if expect:
             print(f"DRY: Would {direction} {card_id} from expected={expect}")
         else:
             print(f"DRY: Would {direction} {card_id} along pipeline {pipeline}")
         return
+    if not pipeline:
+        print("ERROR: No pipeline defined in config (optional pipeline mode).", file=sys.stderr)
+        sys.exit(EXIT_CONFIG)
+    lists = config.get("lists", {})
     card = api("GET", f"/cards/{card_id}", {"fields": "idList"}, creds)
     current_list_id = card["idList"]
     current_name = None
@@ -1102,7 +1145,10 @@ def main():
             member = args[5] if len(args) > 5 else None
             cmd_create(args[1], args[2], config, creds, dry, label_ids, due, member)
         elif cmd == "done" and len(args) >= 2:
-            cmd_done(args[1], config, creds, dry)
+            agent = args[2] if len(args) > 2 else os.environ.get("OPENCLAW_AGENT_ID")
+            cmd_done(args[1], config, creds, dry, agent=agent)
+        elif cmd == "reopen" and len(args) >= 2:
+            cmd_reopen(args[1], config, creds, dry)
         elif cmd == "move" and len(args) >= 3:
             cmd_move(args[1], args[2], config, creds, dry)
         elif cmd == "comment" and len(args) >= 3:
