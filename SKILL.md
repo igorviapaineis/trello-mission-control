@@ -219,7 +219,7 @@ python3 {baseDir}/scripts/trello_task.py rate-budget             # remaining API
 
 ### Cards
 ```bash
-python3 {baseDir}/scripts/trello_task.py get <list> [--for-agent <agent_id>]  # --for-agent hides cards claimed by other agents
+python3 {baseDir}/scripts/trello_task.py get <list> [--for-agent <agent_id>]  # --for-agent hides cards claimed by others + done cards
 python3 {baseDir}/scripts/trello_task.py card <id>
 python3 {baseDir}/scripts/trello_task.py create <list> "<name>" "labels,csv" [due] [member]
 python3 {baseDir}/scripts/trello_task.py template <tpl_card_id> <list> "<new name>"
