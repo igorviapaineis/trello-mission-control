@@ -19,8 +19,10 @@ get my list
   → cards present? pick the highest-priority card without a claim-* label
     → claim it
     → ensure required_skills
-    → execute
-    → update_card_complete (writes description, checklist, attachments)
+    → plan: break the Goal into ordered subtasks (= checklist items)
+    → execute subtasks one at a time → parts/NN-<slug>.<ext>
+    → assemble parts into one complete file + attach
+    → update_card_complete (writes description, ticks checklist)
     → handoff (if pipeline) or done
   → next card
 ```
@@ -50,13 +52,46 @@ python3 ~/.openclaw/skills/trello-mission-control/scripts/ensure_skills.py <CARD
 
 This reads `required_skills` from the card meta, installs anything missing via clawhub after a static audit, and either succeeds silently or blocks the card with an explanatory comment (in which case you abort and pick the next card).
 
-## Execute
+## Plan & decompose
 
-Do the work the card asks for. Use whatever skills you now have. Take notes locally about which files changed, time taken, test pass/fail counts, etc.
+Read the card's `## Goal` and `## Skills`. Break the work into 3–7 small, ordered subtasks — each using one of the chosen skills where it applies. Add each as an item on the `Result` checklist so progress is visible, and make a working dir for the parts:
+
+```bash
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py checklist <CARD_ID> create "Result"
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py checklist <CARD_ID> add <CL_ID> "01 — <subtask>"
+# repeat for each subtask
+mkdir -p ~/.openclaw/workspace-<agent>/work/<CARD_ID>/parts
+```
+
+## Execute one subtask at a time
+
+Do the subtasks **in order, one at a time** — finishing and writing each before starting the next. Small focused steps execute far better than one big pass. For each subtask:
+
+1. Do the work with the assigned skill.
+2. Write its output to `parts/NN-<slug>.<ext>` (the `NN` prefix sets assembly order).
+3. Check the matching checklist item:
+   ```bash
+   python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py checklist <CARD_ID> items <CL_ID>   # find item id
+   python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py checklist <CARD_ID> check <ITEM_ID>
+   ```
+4. Comment only on a `blocked` or `note` — otherwise stay quiet.
+
+Take notes locally about files changed, time, and test pass/fail counts for the completion summary.
+
+## Assemble the complete file
+
+When every subtask is done, join the parts into one complete artifact and attach it:
+
+```bash
+python3 ~/.openclaw/skills/trello-mission-control/scripts/assemble_artifact.py <CARD_ID> \
+  --parts-dir ~/.openclaw/workspace-<agent>/work/<CARD_ID>/parts
+```
+
+It concatenates the parts in filename order, writes `_complete.<ext>`, and attaches it. For binary or multi-file deliverables, attach directly with `trello_task.py attach` / `attach_dir.py` instead.
 
 ## Complete
 
-Always call `update_card_complete.py` at the end. This is non-negotiable — it writes the structured description, ticks the checklist, attaches artifacts, and posts the done comment. Comments are brief; the card body and attachments carry the substance.
+Always call `update_card_complete.py` at the end. This is non-negotiable — it writes the structured description, ticks the checklist, attaches artifacts, and posts the done comment. The assembled complete file is already attached by `assemble_artifact.py`; here `--attach` is for extra artifacts like diffs and logs. Comments are brief; the card body and attachments carry the substance.
 
 ```bash
 python3 ~/.openclaw/skills/trello-mission-control/scripts/update_card_complete.py <CARD_ID> \

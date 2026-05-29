@@ -8,7 +8,7 @@ OpenClaw **skill** for multi-agent task orchestration via Trello. The user talks
 ## Quickstart
 
 ```bash
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.2.0
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.3.0
 export TRELLO_API_KEY='...' TRELLO_TOKEN='...'       # https://trello.com/power-ups/admin
 cd ~/.openclaw/skills/trello-mission-control
 python3 scripts/trello_task.py init                  # fill IDs in the generated config
@@ -31,7 +31,7 @@ Full setup: [docs/quickstart.md](docs/quickstart.md) · architecture: [docs/arch
 ## Install
 
 ```bash
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.2.0
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.3.0
 ```
 
 Full setup steps (board creation, credentials, workspaces, config snippets, smoke test): see `references/install.md`.
@@ -63,8 +63,10 @@ Lifecycle is managed inline by the skill — no plugin hooks are registered:
 | `scripts/doctor.py` | End-to-end setup verification (10 numbered checks) |
 | `scripts/release_my_claims.py` | Called at the top of every executor `HEARTBEAT.md` tick |
 | `scripts/cron_stale_claims.py` | Daily janitor that releases stale `claim-*` labels |
+| `scripts/discover_skills.py` | Orchestrator: search ClawHub for the best-fit skills, rank candidates |
 | `scripts/skill_audit.py` | Static scan of a clawhub skill before install |
 | `scripts/ensure_skills.py` | Reads `required_skills` from a card; installs missing skills |
+| `scripts/assemble_artifact.py` | Executor: join subtask part files into one complete file, attach it |
 | `scripts/attach_dir.py` | gzip + attach a directory (10 MB Trello free cap) |
 | `scripts/update_card_complete.py` | Card hygiene helper: structured desc, checklist, attachments, brief done comment |
 | `references/*.md` | Documentation (card spec, labels, board template, install, audit checks, heartbeat budget) |

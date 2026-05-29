@@ -10,9 +10,9 @@ List             → which agent picks it up (executor list)
 Labels           → urgente / bloqueado / claim-<agent> / etc (see references/labels.md)
 Due date         → optional; orchestrator may set if deadline-bound
 Members          → optional human assignee (Trello UI, not used by agents)
-Description      → structured markdown (Objetivo / Resultado / Mudanças / Métricas / Notas)
+Description      → structured markdown (Goal / Skills / Result / Changes / Metrics / Notes)
                    trailing <!--meta { ... } --> JSON block
-Checklist(s)     → execution steps; checked off as the executor progresses
+Checklist(s)     → ordered subtasks; checked off as the executor progresses
 Attachments      → diffs, logs, screenshots — long content lives here, not in comments
 Comments         → brief status updates, all tagged with [ISO | @agent | tag] prefix
 ```
@@ -24,6 +24,10 @@ The executor's `update_card_complete.py` script writes this layout. The orchestr
 ```markdown
 ## Goal
 Short briefing — what the user asked for and what acceptance looks like.
+
+## Skills
+Chosen by the orchestrator via `discover_skills.py` (ClawHub search). One bullet per skill:
+- `<slug>` — why it's needed; covers subtask N.
 
 ## Result
 Filled by the executor at completion. What was actually done.
@@ -57,7 +61,7 @@ Gotchas, decisions, things future you should know.
 | Key | Type | Used by |
 |---|---|---|
 | `priority` | `P0`/`P1`/`P2`/`P3` string | orchestrator triage |
-| `required_skills` | list of skill names | `ensure_skills.py` |
+| `required_skills` | list of skill names | orchestrator picks via `discover_skills.py`; executor installs via `ensure_skills.py` |
 | `parent_card` | card ID | trace back composite work |
 | `retries` | int | executor increments on retry; orchestrator decides max |
 | `estimated_min` | int | rough size; orchestrator uses for daily planning |
@@ -80,9 +84,13 @@ Tags: `claim` `done` `blocked` `handoff` `note`.
 
 Comments are brief by rule. Long content goes into the description (`Result` / `Changes` / `Notes`) or attachments. The audit log (`activity --filter`) becomes useful precisely because comments are tagged and short.
 
-## Checklist
+## Checklist & subtasks
 
-Default name: `Result`. The executor either ticks items the orchestrator created or appends + ticks new ones. Trello Free allows unlimited checklist items per card.
+Default name: `Result`. The executor breaks the Goal into 3–7 ordered subtasks and adds them as checklist items (the orchestrator may seed them). It runs them **one at a time**, writing each subtask's output to a part file and ticking the item as it goes. Trello Free allows unlimited checklist items per card.
+
+### Working dir & parts
+
+Each subtask writes to `~/.openclaw/workspace-<agent>/work/<card_id>/parts/NN-<slug>.<ext>` — the `NN` numeric prefix sets assembly order. When all subtasks are done, `assemble_artifact.py` concatenates the parts in order into a single complete file (`_complete.<ext>`) and attaches it to the card. For binary or multi-file deliverables, attach directly with `attach` / `attach_dir.py` instead.
 
 ## Attachments
 
@@ -92,6 +100,7 @@ Recommended artifacts:
 
 | Artifact | When |
 |---|---|
+| `_complete.<ext>` | the deliverable assembled from subtask parts (`assemble_artifact.py`) |
 | `diff.patch` | always when code changed |
 | `logs/` (gzip) | failed/long runs |
 | `screenshots/*.png` | UI work |

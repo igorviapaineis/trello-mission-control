@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] — 2026-05-29
+
+### Added (orchestrator — active skill selection)
+- `scripts/discover_skills.py` — the orchestrator now **searches ClawHub** for the best-fit skills for a task (installed or not) instead of declaring `required_skills` from memory. It runs `clawhub search`, inspects the top hits for repo/description, flags which are already installed, and prints ranked `CANDIDATE:` lines. Supports `--limit`, `--json`, `--dry`; prints `NO_CANDIDATES` (exit 0) when nothing matches.
+- `scripts/ensure_skills.py` gains `search_clawhub_all(query, limit, dry)` (+ `_normalize_result`); `search_clawhub` now wraps it and returns the first slug (behaviour unchanged). `discover_skills.py` reuses these helpers so selection and install share one ClawHub layer.
+- Orchestrator template (`AGENTS.md`) gets a "Discover & choose skills" step and writes a `## Skills` description section (chosen slug + why + which subtask). The user confirmation line names the chosen skills.
+
+### Added (executor — task decomposition)
+- `scripts/assemble_artifact.py` — joins an executor's per-subtask part files into one complete file and attaches it. Globs a `--parts-dir`, orders by filename (`NN-<slug>.<ext>`), concatenates (optional `--separator` / `--header-from-filename`), writes `_complete.<ext>`, and attaches via `cmd_attach`. `--no-attach` and `--dry` honoured; re-runs are idempotent (skips its own `_complete.*`); exit 1 when no parts are found.
+- Executor templates (`AGENTS.md`, `HEARTBEAT.md`) now describe the decompose flow: split the Goal into 3–7 ordered subtasks (checklist items), run them **one at a time** writing each to `~/.openclaw/workspace-<agent>/work/<card_id>/parts/NN-<slug>.<ext>`, then assemble + attach the complete file. Small sequential steps execute better than one monolithic pass.
+- `update_card_complete.py` recognizes `## Skills` as a first-class section (after `Goal`), so the orchestrator's skill block survives the executor's completion rewrite instead of being folded into `Goal`.
+
+### Added (tests)
+- `tests/test_discover_skills.py` — arg parsing, one-line truncation, ranking, installed-flagging, inspect gap-fill, no-results.
+- `tests/test_assemble_artifact.py` — arg parsing, filename ordering, `_complete`/dotfile skip, output derivation, concat/separator/header, no-parts exit, write path, idempotent re-run.
+- `tests/test_ensure_skills_inspect.py` — coverage for `search_clawhub_all` and `_normalize_result`.
+
+### Changed (docs)
+- `SKILL.md`: frontmatter trigger mentions ClawHub skill search/selection + task decomposition; canonical workflow diagram shows discover → `## Skills` and decompose → subtasks → assemble; Rules split into "Skill selection (orchestrator)" / "Skill install (executor)" + new "Task decomposition (executor)"; CLI reference adds `discover_skills.py` and `assemble_artifact.py`.
+- `references/card-spec.md`: adds the `## Skills` description section, a "Checklist & subtasks" + "Working dir & parts" convention, and `_complete.<ext>` in the artifacts table.
+- README, `SKILL.md` bump `@v3.2.0` → `@v3.3.0`; `package.json` bumped to 3.3.0.
+
+### Notes
+- Minor release (two new capabilities), backward-compatible: cards without a `## Skills` section or `parts/` working dir keep working exactly as before. The orchestrator chooses skills autonomously and confirms in one line; the executor decomposes and assembles on its own. Requested by Igor so the orchestrator finds the best ClawHub skills and the specialist breaks work into smaller steps before assembling the final artifact.
+
 ## [3.2.0] — 2026-05-29
 
 ### Changed (behaviour)

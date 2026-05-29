@@ -54,5 +54,35 @@ class TestDryRunPaths(unittest.TestCase):
         self.assertIsNotNone(url)
 
 
+class TestSearchClawhubAll(unittest.TestCase):
+    def test_dry_returns_stub_list(self):
+        res = es.search_clawhub_all("nextjs", limit=5, dry=True)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0]["slug"], "dry-nextjs")
+
+    def test_search_clawhub_first_slug_unchanged(self):
+        # The single-slug wrapper still returns the first match in dry mode.
+        self.assertEqual(es.search_clawhub("nextjs", dry=True), "dry-nextjs")
+
+
+class TestNormalizeResult(unittest.TestCase):
+    def test_string_item(self):
+        self.assertEqual(es._normalize_result("foo extra")["slug"], "foo")
+
+    def test_dict_slug_aliases(self):
+        self.assertEqual(es._normalize_result({"id": "bar"})["slug"], "bar")
+        self.assertEqual(es._normalize_result({"name": "baz"})["slug"], "baz")
+
+    def test_desc_aliases(self):
+        self.assertEqual(
+            es._normalize_result({"slug": "x", "summary": "hi"})["desc"], "hi"
+        )
+
+    def test_returns_none_when_no_slug(self):
+        self.assertIsNone(es._normalize_result({}))
+        self.assertIsNone(es._normalize_result(123))
+        self.assertIsNone(es._normalize_result(""))
+
+
 if __name__ == "__main__":
     unittest.main()

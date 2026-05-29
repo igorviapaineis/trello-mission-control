@@ -1,6 +1,6 @@
 ---
 name: trello-mission-control
-description: "Multi-agent task orchestration via Trello — claim, pipeline, archive, digest, skill discovery, card hygiene. Use whenever the user mentions Trello-based agent coordination, multi-agent task delegation via cards, claim/release locking, board hygiene and archiving, or wants to set up orchestrator + executor agents that pass work through Trello — e.g. 'cria board pra meus agentes', 'orquestra X via Trello', 'meu agente precisa pegar cards do Trello', 'configura multi-agent via Trello', 'crie orchestrator pra Trello'."
+description: "Multi-agent task orchestration via Trello — claim, pipeline, archive, digest, ClawHub skill search/selection, task decomposition, card hygiene. Use whenever the user mentions Trello-based agent coordination, multi-agent task delegation via cards, claim/release locking, board hygiene and archiving, or wants to set up orchestrator + executor agents that pass work through Trello — e.g. 'cria board pra meus agentes', 'orquestra X via Trello', 'meu agente precisa pegar cards do Trello', 'configura multi-agent via Trello', 'crie orchestrator pra Trello'."
 metadata:
   openclaw:
     emoji: "📋"
@@ -60,7 +60,7 @@ If any of the above is missing, `scripts/doctor.py` (step 5 of the Quickstart) w
 #    Prefer to set everything up manually? Follow references/board-template.md §1 onwards.
 
 # 1. Install the skill (git source until published to ClawHub)
-openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.2.0
+openclaw skills install git:github.com/igorviapaineis/trello-mission-control@v3.3.0
 
 # 2. Export Trello credentials (every script reads them from the environment)
 export TRELLO_API_KEY='...'
@@ -111,12 +111,13 @@ Full step-by-step with screenshots: [docs/walkthrough.md](docs/walkthrough.md). 
 ```
 User --chat--> Orchestrator
                   |
+                  | discovers best skills (discover_skills.py → clawhub search)
                   | creates card with:
                   |   - target list (executor list)
-                  |   - structured description (objective, context, acceptance)
+                  |   - structured description (Goal, Skills, Notes)
                   |   - meta { priority, required_skills, parent_card }
                   |   - urgente label (if urgent → triggers wake)
-                  |   - checklist with execution steps
+                  |   - checklist with ordered subtasks
                   v
               Trello board
                   |
@@ -126,10 +127,10 @@ User --chat--> Orchestrator
                   |
                   +-- claim <id> <me>        → label claim-<me> = doing
                   +-- ensure required_skills (clawhub install if missing → audit → install)
-                  +-- work
-                  +-- update checklist per step
-                  +-- attach diffs, logs, screenshots
-                  +-- update description (Objective / Result / Changes / Metrics / Notes)
+                  +-- plan: split Goal into ordered subtasks (checklist items)
+                  +-- execute subtasks one at a time → parts/NN-<slug>.<ext>
+                  +-- assemble parts into one complete file + attach
+                  +-- update description (Goal / Result / Changes / Metrics / Notes), tick checklist
                   +-- brief done comment with tag
                   +-- done <id> <me>         → label done + dueComplete, claim released
                   v
@@ -185,12 +186,28 @@ python3 {baseDir}/scripts/update_card_complete.py <id> --result "..." --changes 
 - Priority: label `urgente` first, then oldest.
 - Process one at a time. Comment + advance/release before grabbing the next.
 
-### Skill discovery (read `required_skills` from card meta)
+### Skill selection (orchestrator — search ClawHub)
+Before creating a card, the orchestrator picks the skills the executor will need by **searching ClawHub**, not from memory:
+```bash
+python3 {baseDir}/scripts/discover_skills.py "<task keywords>" [--limit 5] [--json]
+```
+It searches ClawHub (installed or not), inspects the top hits, and prints ranked `CANDIDATE:` lines (slug, installed?, repo, one-line desc). The orchestrator chooses the best 1–3 slugs, writes them to `required_skills`, and names them in a `## Skills` description section. `NO_CANDIDATES` → fall back to known-installed skills or omit.
+
+### Skill install (executor — read `required_skills` from card meta)
 1. `meta-get <card_id> required_skills` returns a JSON list.
 2. `openclaw skills list` shows installed.
 3. For each missing: `clawhub search <name>` → `clawhub inspect <slug>` (resolves the slug to repository metadata, including the git URL) → `git clone --depth 1 <repo_url> /tmp/<slug>` → `python3 {baseDir}/scripts/skill_audit.py /tmp/<slug>`.
 4. Audit pass → `openclaw skills install /tmp/<slug>` + `/new`.
 5. Audit fail → comment with `--tag blocked` + add label `bloqueado` + exit.
+
+`ensure_skills.py` runs steps 1–5 in one call; the orchestrator's `discover_skills.py` reuses the same search/inspect helpers for selection.
+
+### Task decomposition (executor)
+The executor splits a card's Goal into 3–7 ordered subtasks (the `Result` checklist items), runs them **one at a time** — writing each output to `~/.openclaw/workspace-<agent>/work/<card_id>/parts/NN-<slug>.<ext>` and ticking the item — then assembles the parts into one complete file and attaches it:
+```bash
+python3 {baseDir}/scripts/assemble_artifact.py <card_id> --parts-dir <dir>
+```
+Small sequential steps plus a single assembled artifact execute better than one monolithic pass. For binary/multi-file deliverables, attach directly with `attach` / `attach_dir.py` instead.
 
 ### Wake on urgent
 When the orchestrator creates a card with label `urgente`, it also runs:
@@ -277,6 +294,7 @@ python3 {baseDir}/scripts/trello_task.py checklist <id> check <item_id>
 ```bash
 python3 {baseDir}/scripts/trello_task.py attach <id> /path/to/diff.patch
 python3 {baseDir}/scripts/attach_dir.py <id> /path/to/logs        # gzips dir, attaches single archive
+python3 {baseDir}/scripts/assemble_artifact.py <id> --parts-dir <dir>   # join subtask parts → 1 complete file, attach
 ```
 
 ### Search and reports
@@ -287,7 +305,8 @@ python3 {baseDir}/scripts/trello_task.py overdue --list executor
 
 ### Skill discovery / audit
 ```bash
-python3 {baseDir}/scripts/ensure_skills.py <card_id>              # reads required_skills meta, installs missing
+python3 {baseDir}/scripts/discover_skills.py "<task keywords>" [--limit 5] [--json]  # orchestrator: search ClawHub, rank candidates
+python3 {baseDir}/scripts/ensure_skills.py <card_id>              # executor: reads required_skills meta, installs missing
 python3 {baseDir}/scripts/skill_audit.py <skill_folder>           # static scan; exit 8 on failure
 ```
 

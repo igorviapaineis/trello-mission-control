@@ -41,7 +41,7 @@ from trello_task import (
 )
 
 
-EN_SECTIONS = ["Goal", "Result", "Changes", "Metrics", "Notes"]
+EN_SECTIONS = ["Goal", "Skills", "Result", "Changes", "Metrics", "Notes"]
 
 # Map legacy Portuguese section names (older cards from before v3.0.1) to the
 # canonical English ones. parse_existing accepts both; render emits English only.
@@ -54,7 +54,7 @@ PT_TO_EN = {
 }
 
 SECTION_RE = re.compile(
-    r"^##\s+(Goal|Result|Changes|Metrics|Notes|Objetivo|Resultado|Mudanças|Métricas|Notas)\s*$",
+    r"^##\s+(Goal|Skills|Result|Changes|Metrics|Notes|Objetivo|Resultado|Mudanças|Métricas|Notas)\s*$",
     re.MULTILINE,
 )
 

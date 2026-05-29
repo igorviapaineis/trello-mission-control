@@ -1,57 +1,38 @@
 # HEARTBEAT — Executor
 
-Run these steps in order. Replace `<MY_LIST>` and `<MY_AGENT_ID>` with the executor's actual values.
+Run in order. Replace `<MY_LIST>` / `<MY_AGENT_ID>` with real values.
 
 ```bash
-# 0. Release any claim left behind from a previous tick that did not finish cleanly.
-#    This replaces the former plugin onSessionStop hook.
+# 0. Free any claim left by a previous tick (replaces the old onSessionStop hook).
 python3 ~/.openclaw/skills/trello-mission-control/scripts/release_my_claims.py <MY_AGENT_ID>
-
-# 1. Pick up new work from my list. --for-agent hides cards already claimed by others.
+# 1. Pick up work. --for-agent hides cards claimed by others.
 python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py get <MY_LIST> --for-agent <MY_AGENT_ID>
 ```
 
-- Output `NO_CARDS` → reply `HEARTBEAT_OK` and stop.
-- Otherwise pick the card to work on, from the listing as returned (already filtered):
-  - First any with label `urgente`.
-  - Otherwise the oldest one.
-
-For the chosen card, in order:
+`NO_CARDS` → reply `HEARTBEAT_OK` and stop. Else pick the card: `urgente` first, then oldest.
 
 ```bash
-python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py claim <CARD_ID> <MY_AGENT_ID>
-# exit 5 → STOP. Another agent owns this card. Do not start work. Refetch the list next tick.
-python3 ~/.openclaw/skills/trello-mission-control/scripts/ensure_skills.py <CARD_ID>
-# exit 8 → card was blocked; skip
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py claim <CARD_ID> <MY_AGENT_ID>   # exit 5 → STOP, another agent owns it; refetch next tick
+python3 ~/.openclaw/skills/trello-mission-control/scripts/ensure_skills.py <CARD_ID>                      # exit 8 → card blocked; skip
 ```
 
-Now do the work. Capture the diff to `/tmp/diff.patch` and any logs to `/tmp/...log`.
-
-When done, write the completion summary:
+**Plan** — split the Goal into ordered subtasks, add each to the `Result` checklist, make a parts dir:
 
 ```bash
-python3 ~/.openclaw/skills/trello-mission-control/scripts/update_card_complete.py <CARD_ID> \
-  --result "..." \
-  --changes "file:line — ..." \
-  --metric "..." \
-  --check-step "..." \
-  --attach /tmp/diff.patch \
-  --comment "1-liner" \
-  --agent <MY_AGENT_ID>
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py checklist <CARD_ID> add <CL_ID> "01 — <subtask>"
+mkdir -p ~/.openclaw/workspace-<MY_AGENT_ID>/work/<CARD_ID>/parts
 ```
 
-Finish (default, single-owner) — the card stays in your column; `done` labels it, sets the native check, and releases your claim:
+**Execute one at a time** — per subtask: do the work with the assigned skill, write to `parts/NN-<slug>.<ext>`, then `trello_task.py checklist <CARD_ID> check <ITEM_ID>`. Capture any diff to `/tmp/diff.patch`.
+
+**Assemble + attach** the complete file, write the summary, then finish (the complete file is already attached; `--attach` is for diffs/logs):
 
 ```bash
-python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py done <CARD_ID> <MY_AGENT_ID>
+python3 ~/.openclaw/skills/trello-mission-control/scripts/assemble_artifact.py <CARD_ID> --parts-dir ~/.openclaw/workspace-<MY_AGENT_ID>/work/<CARD_ID>/parts
+python3 ~/.openclaw/skills/trello-mission-control/scripts/update_card_complete.py <CARD_ID> --result "..." --changes "file:line — ..." --metric "..." --attach /tmp/diff.patch --comment "1-liner" --agent <MY_AGENT_ID>
+python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py done <CARD_ID> <MY_AGENT_ID>   # +done label, native check, releases claim; card stays
 ```
 
-Pipeline mode only (card has multiple stages, `pipeline` defined in config) — hand off to the next stage instead, and call `done` only at the final stage:
+Pipeline mode only (multi-stage card, `pipeline` in config): replace `done` with `next <CARD_ID> --expect <MY_LIST>`, calling `done` only at the final stage.
 
-```bash
-python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py next <CARD_ID> --expect <MY_LIST>
-```
-
-Loop until the list is empty, then reply `HEARTBEAT_OK`.
-
-Full protocol: `~/.openclaw/skills/trello-mission-control/SKILL.md`.
+Loop until the list is empty, then reply `HEARTBEAT_OK`. Full protocol: `~/.openclaw/skills/trello-mission-control/SKILL.md`.

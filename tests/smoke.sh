@@ -15,6 +15,12 @@ export TRELLO_TOKEN=fake
 export TRELLO_CONFIG="$ROOT/references/example-config.json"
 export OPENCLAW_AGENT_ID=executor
 
+# A throwaway parts dir for the assemble_artifact dry-run check.
+SMOKE_PARTS="$(mktemp -d)"
+printf 'a' > "$SMOKE_PARTS/01-a.md"
+printf 'b' > "$SMOKE_PARTS/02-b.md"
+trap 'rm -rf "$SMOKE_PARTS"' EXIT
+
 PASS=0
 FAIL=0
 FAILED_CMDS=()
@@ -81,6 +87,8 @@ check "archive_old" python3 scripts/archive_old.py --dry --days 30 --from done
 check "setup_labels" python3 scripts/setup_labels.py --dry
 check "release_my_claims" python3 scripts/release_my_claims.py executor --dry
 check "ensure_skills" python3 scripts/ensure_skills.py CARDID --dry
+check "discover_skills" python3 scripts/discover_skills.py "build a web app" --dry
+check "assemble_artifact" python3 scripts/assemble_artifact.py CARDID --parts-dir "$SMOKE_PARTS" --dry
 check "cron_stale_claims" python3 scripts/cron_stale_claims.py --dry
 check "doctor" python3 scripts/doctor.py --dry
 check "bootstrap_board" python3 scripts/bootstrap_board.py --dry --agents jarvis,vision

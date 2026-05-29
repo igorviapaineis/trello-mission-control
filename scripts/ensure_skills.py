@@ -69,25 +69,56 @@ def list_installed(dry):
     return {s.get("name") for s in data if isinstance(s, dict) and s.get("name")}
 
 
-def search_clawhub(name, dry):
-    """Return the first matching slug for `name`, or None."""
-    code, out, _ = run(["clawhub", "search", name, "--json"], dry)
-    if dry:
-        return f"dry-{name}"
-    if code != 0:
+def _normalize_result(item):
+    """Normalize one clawhub search result into {slug, desc, repo}.
+
+    Resilient to schema drift: accepts a bare string (slug only) or a dict
+    with any of the common slug/description/repo key spellings.
+    """
+    if isinstance(item, str):
+        parts = item.strip().split()
+        return {"slug": parts[0], "desc": "", "repo": None} if parts else None
+    if not isinstance(item, dict):
         return None
+    slug = item.get("slug") or item.get("id") or item.get("name")
+    if not slug:
+        return None
+    desc = item.get("description") or item.get("desc") or item.get("summary") or ""
+    return {"slug": slug, "desc": desc, "repo": repo_url_from_metadata(item)}
+
+
+def search_clawhub_all(query, limit, dry):
+    """Return up to `limit` normalized search results for `query`.
+
+    Each result is a dict {"slug", "desc", "repo"}. Empty list on no
+    matches or a non-zero `clawhub search` exit. `repo` may be None — the
+    caller resolves it with `inspect_clawhub` when needed.
+    """
+    code, out, _ = run(["clawhub", "search", query, "--json"], dry)
+    if dry:
+        return [{"slug": f"dry-{query}", "desc": "dry-run candidate", "repo": None}]
+    if code != 0:
+        return []
     try:
         results = json.loads(out)
     except json.JSONDecodeError:
-        for line in out.splitlines():
-            line = line.strip()
-            if line:
-                return line.split()[0]
-        return None
-    if results and isinstance(results, list):
-        first = results[0]
-        return first.get("slug") or first.get("id") or first.get("name")
-    return None
+        results = [line.strip() for line in out.splitlines() if line.strip()]
+    if not isinstance(results, list):
+        return []
+    normalized = []
+    for item in results:
+        norm = _normalize_result(item)
+        if norm:
+            normalized.append(norm)
+        if limit and len(normalized) >= limit:
+            break
+    return normalized
+
+
+def search_clawhub(name, dry):
+    """Return the first matching slug for `name`, or None."""
+    results = search_clawhub_all(name, limit=1, dry=dry)
+    return results[0]["slug"] if results else None
 
 
 def inspect_clawhub(slug, dry):
