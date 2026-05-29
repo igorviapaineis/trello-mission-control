@@ -293,7 +293,7 @@ python3 {baseDir}/scripts/skill_audit.py <skill_folder>           # static scan;
 
 ### Maintenance
 ```bash
-python3 {baseDir}/scripts/archive_old.py --days 30 --from done    # cron daily; move to archive board
+python3 {baseDir}/scripts/archive_old.py --days 14               # cron daily; sweeps done-labelled cards to archive board
 python3 {baseDir}/scripts/release_my_claims.py <agent>            # called by onSessionStop hook
 ```
 

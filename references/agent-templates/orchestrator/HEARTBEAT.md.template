@@ -25,7 +25,8 @@ python3 ~/.openclaw/skills/trello-mission-control/scripts/digest.py
 python3 ~/.openclaw/skills/trello-mission-control/scripts/release_my_claims.py executor
 
 # nightly archive (already runs on its own cron, this is for ad-hoc cleanup)
-python3 ~/.openclaw/skills/trello-mission-control/scripts/archive_old.py --days 30 --from done
+# sweeps done-labelled cards off the board so each agent column stays compact
+python3 ~/.openclaw/skills/trello-mission-control/scripts/archive_old.py --days 14
 ```
 
 Full protocol: `~/.openclaw/skills/trello-mission-control/SKILL.md`.

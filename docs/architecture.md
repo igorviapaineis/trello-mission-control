@@ -59,7 +59,7 @@ sequenceDiagram
     Note right of E: do the work
     E->>T: update_card_complete (desc, checklist, attachments)
     E->>T: comment --tag done "..."
-    E->>T: done cardId (idList → done, dueComplete=true)
+    E->>T: done cardId executor (label done + dueComplete; card stays in executor column)
 ```
 
 ## Sequence: multi-agent pipeline (JARVIS → VISION → Friday → Sia)
