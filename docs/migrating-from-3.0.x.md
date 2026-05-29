@@ -67,3 +67,32 @@ No card format change. Cards created against 3.0.0–3.0.2 (none, in practice, s
 ## What's next
 
 - v3.1.0+ will offer a real OpenClaw plugin with a valid manifest, compiled `dist/index.js`, and hooks mapped to the real `api.on(...)` / `api.registerHook(...)` API. The skill-only form will keep working.
+
+---
+
+# Migrating to 3.2.0 — status by label (no `done` list)
+
+v3.2.0 changes how completion is recorded. Instead of moving a finished card to a `done` list, the executor adds a `done` label (+ the native `dueComplete` check) and the card **stays in its owner's column**. This removes the `done`-list pile-up and the cross-list pickup bug.
+
+Existing boards keep working; do this to adopt the new model:
+
+1. **Create the `done` label** (idempotent — adds the new green `done` label to the canonical set):
+   ```bash
+   python3 ~/.openclaw/skills/trello-mission-control/scripts/setup_labels.py
+   ```
+
+2. **(Optional) Label the cards already sitting in your old `done` list** so the archive sweep can collect them, then delete/hide the `done` list:
+   ```bash
+   # for each card id in the old done list:
+   python3 ~/.openclaw/skills/trello-mission-control/scripts/trello_task.py done <card_id>
+   ```
+
+3. **Schedule the archive sweep** (moves `done`-labelled cards with no activity for N days off the board):
+   ```bash
+   openclaw cron add archive-done --schedule "0 4 * * *" \
+     --command "python3 ~/.openclaw/skills/trello-mission-control/scripts/archive_old.py --days 14"
+   ```
+
+4. **Refresh the agent templates** from `references/agent-templates/`. Executors now finish with `done <card_id> <agent>` (no move) and read actionable work with `get <list> --for-agent <agent>` (hides done + others' claimed cards).
+
+Pipeline users: keep your `pipeline` array in `trello_config.json`. `next`/`prev` still hand off between columns; only the terminal step changes from "move to `done` list" to `done` (label).

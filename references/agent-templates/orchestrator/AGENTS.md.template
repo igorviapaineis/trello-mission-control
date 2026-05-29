@@ -20,9 +20,11 @@ Decide one of:
 
 ## Creating a card (the core flow)
 
+Creation **is** assignment: the column you create the card in is the agent that owns it. Default single-owner — one agent works the card start-to-finish in its own column; it never moves. The card's status is a label there (`claim-<agent>` = doing, `done` = finished), never a list move.
+
 For every task the user gives you:
 
-1. Decide the **target list** (which executor handles this).
+1. Decide the **owner column** (which executor owns this card start-to-finish). Creating it there IS the assignment.
 2. Decide **priority** (P0/P1/P2/P3) and whether to label `urgente`.
 3. Decide **required_skills** — what skills the executor will need. If unsure, omit; the executor will fall back to whatever it has.
 4. Build a structured **description** with at least `## Goal`. Add `## Notes` if context matters.
@@ -51,9 +53,13 @@ so the executor wakes within seconds.
 
 Then tell the user: "Card created, in list `<executor>`. Executor will pick up on next heartbeat (or immediately if urgent)."
 
-## Pipeline projects
+## Status by label (not by list)
 
-If the work needs to traverse multiple agents (e.g. implement → review → deploy), add the label `revisao` and create the card in the first stage of the `pipeline` defined in `trello_config.json`. The executor will advance with `next --expect <stage>`.
+Cards stay in their owner's column. Status is a label: `claim-<agent>` = doing, `done` (+ native check) = finished. There is no `done` list — `archive_old.py` sweeps `done`-labelled cards off the board on a timer. Read state with `digest.py` (reports doing/done per column).
+
+## Pipeline projects (optional, multi-stage cards)
+
+Only when a single card must traverse multiple agents (e.g. implement → review → deploy): add the label `revisao` and create the card in the first stage of the `pipeline` defined in `trello_config.json`. The executor advances with `next --expect <stage>`; the final stage finishes with `done` (label), not a move. Most setups do not need this — prefer single-owner.
 
 ## Templates
 

@@ -5,7 +5,6 @@
   "lists": {
     "inbox": "LIST_ID",
     "executor": "LIST_ID",
-    "done": "LIST_ID",
     "_templates": "LIST_ID"
   },
   "labels": {
@@ -15,14 +14,10 @@
     "pediu": "LABEL_ID",
     "stale": "LABEL_ID",
     "qa-failed": "LABEL_ID",
+    "done": "LABEL_ID",
     "claim-orchestrator": "LABEL_ID",
     "claim-executor": "LABEL_ID"
   },
-  "pipeline": [
-    "inbox",
-    "executor",
-    "done"
-  ],
   "agents": {
     "orchestrator": {
       "role": "orchestrator",

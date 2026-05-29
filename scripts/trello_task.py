@@ -648,13 +648,13 @@ def cmd_pipeline_prev(card_id, config, creds, dry, expect=None):
 
 def cmd_pipeline_status(config, creds, dry):
     pipeline = config.get("pipeline", [])
-    if not pipeline:
-        print("ERROR: No pipeline defined in config.", file=sys.stderr)
-        sys.exit(EXIT_CONFIG)
-    lists_cfg = config.get("lists", {})
     if dry:
         print(f"DRY: Would show pipeline status for stages: {pipeline}")
         return
+    if not pipeline:
+        print("ERROR: No pipeline defined in config (optional pipeline mode).", file=sys.stderr)
+        sys.exit(EXIT_CONFIG)
+    lists_cfg = config.get("lists", {})
     board_id = config["board_id"]
     cards = api(
         "GET",

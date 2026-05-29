@@ -170,9 +170,15 @@ The canonical card layout (5 description sections, checklist, attachments, brief
 python3 {baseDir}/scripts/update_card_complete.py <id> --result "..." --changes "..." --attach /tmp/diff.patch --agent <me>
 ```
 
-### Pipeline
+### Status by label (default — single-owner)
+- A card belongs to one agent and **stays in that agent's column**. Status is a label, never a list move.
+- `claim-<agent>` = doing/em-andamento; `done` (+ native `dueComplete`) = finished. Queued = neither.
+- Finishing: `done <id> <me>` (no move). Undo: `reopen <id>`. The board stays compact because `archive_old.py` sweeps `done`-labelled cards on a timer.
+
+### Pipeline (optional — multi-stage cards)
+- Only when a single card must pass through several agents in sequence. Define `pipeline` in config and use `next`/`prev` to hand off between columns.
 - Use `next <card_id> --expect <current_list>` to advance. The `--expect` guards against state drift (another agent moved the card). Exit 7 = `STATE_DRIFT`.
-- Never skip pipeline stages.
+- Never skip pipeline stages; the final stage finishes with `done` (label), not a move.
 - Bugs found in review → label `bloqueado` + `prev`.
 
 ### Multiple cards in the same list

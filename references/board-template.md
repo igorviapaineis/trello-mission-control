@@ -26,7 +26,7 @@ python3 scripts/bootstrap_board.py --with-labels
 This calls Trello's REST API to:
 
 1. `POST /1/boards/` — create the active board (`Mission Control`).
-2. `POST /1/lists/` × N — create `inbox`, one list per agent, `done`, `_templates`.
+2. `POST /1/lists/` × N — create `inbox`, one list per agent, `_templates` (no `done` list — status is a label).
 3. `POST /1/boards/` — create the archive board (`Mission Control — Archive`).
 4. Write every ID into `trello_config.json` (merges with any existing fields — does not clobber).
 5. `--with-labels`: invoke `setup_labels.py` to create the 6 global + per-agent `claim-*` labels.
@@ -64,10 +64,11 @@ In the Trello UI:
 1. Create a workspace (or pick an existing one).
 2. Create a board named `Mission Control` (or whatever you prefer).
 3. Add these lists in order:
-   - `inbox`
-   - `executor` (one per executor agent; rename to taste, e.g. `backend-dev`, `qa`, `deploy`)
-   - `done`
+   - `inbox` (optional triage drop zone)
+   - `executor` (one column per agent; rename to taste, e.g. `backend-dev`, `qa`, `deploy`) — the agent owns this column; its cards never leave it
    - `_templates` (hidden list — keep template cards here)
+
+   **No `done` list.** Status is a label, not a list: `claim-<agent>` = doing, `done` (+ native `dueComplete`) = finished. `archive_old.py` sweeps `done`-labelled cards off the board on a timer. (Pipeline mode is optional — add a `pipeline` array to `trello_config.json` only if a card must traverse several agents.)
 
 ## 2. Create the archive board
 

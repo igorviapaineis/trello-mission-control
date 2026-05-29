@@ -1,5 +1,7 @@
 # Architecture
 
+> **v3.2.0 status model (default).** A card belongs to one agent and stays in that agent's column for its whole life. Status is a label, never a list move: `claim-<agent>` = doing, `done` (+ native `dueComplete`) = finished. There is no `done` list — `archive_old.py` sweeps `done`-labelled cards to the archive board on a timer. Multi-stage cards can opt into **pipeline mode** (handoff between columns via `next`/`prev`), where the move-based diagrams below still apply; in single-owner mode the only "move" is the archive sweep.
+
 The plugin is structured in four cooperating layers. The diagrams render directly on GitHub.
 
 ## Component view
